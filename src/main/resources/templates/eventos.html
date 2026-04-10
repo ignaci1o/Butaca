@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Butaca - MVC</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 24px; background: #f5f7fb; color: #1f2937; }
+        h1, h2 { margin-bottom: 8px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background: #fff; border: 1px solid #dbe2ea; border-radius: 8px; padding: 16px; }
+        label { display: block; margin-top: 8px; font-weight: 600; }
+        input, button { width: 100%; padding: 8px; margin-top: 4px; box-sizing: border-box; }
+        button { margin-top: 12px; cursor: pointer; background: #0f766e; color: white; border: none; border-radius: 4px; }
+        table { width: 100%; border-collapse: collapse; background: #fff; }
+        th, td { border: 1px solid #dbe2ea; padding: 10px; text-align: left; }
+        th { background: #e2e8f0; }
+        .ok { background: #dcfce7; border: 1px solid #86efac; padding: 8px; margin-bottom: 10px; }
+        .err { background: #fee2e2; border: 1px solid #fca5a5; padding: 8px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+<h1>Sistema de Entradas (MVC)</h1>
+
+<div th:if="${mensaje}" class="ok" th:text="${mensaje}"></div>
+<div th:if="${error}" class="err" th:text="${error}"></div>
+
+<div class="grid">
+    <div class="card">
+        <h2>Crear evento</h2>
+        <form th:action="@{/eventos}" method="post" th:object="${crearEventoRequest}">
+            <label for="nombre">Nombre</label>
+            <input id="nombre" type="text" th:field="*{nombre}" required>
+
+            <label for="fecha">Fecha</label>
+            <input id="fecha" type="date" th:field="*{fecha}" required>
+
+            <label for="capacidad">Capacidad</label>
+            <input id="capacidad" type="number" min="1" th:field="*{capacidad}" required>
+
+            <button type="submit">Crear</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Comprar entrada</h2>
+        <form th:action="@{/entradas/comprar}" method="post" th:object="${comprarEntradaRequest}">
+            <label for="eventoId">ID Evento</label>
+            <input id="eventoId" type="number" min="1" th:field="*{eventoId}" required>
+            <button type="submit">Comprar</button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Validar entrada</h2>
+        <form th:action="@{/entradas/validar}" method="post" th:object="${validarEntradaRequest}">
+            <label for="codigoUnico">Codigo unico</label>
+            <input id="codigoUnico" type="text" th:field="*{codigoUnico}" required>
+            <button type="submit">Validar</button>
+        </form>
+    </div>
+</div>
+
+<h2>Eventos</h2>
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Fecha</th>
+        <th>Capacidad</th>
+        <th>Disponibles</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="evento : ${eventos}">
+        <td th:text="${evento.id}"></td>
+        <td th:text="${evento.nombre}"></td>
+        <td th:text="${evento.fecha}"></td>
+        <td th:text="${evento.capacidad}"></td>
+        <td th:text="${evento.entradasDisponibles}"></td>
+    </tr>
+    <tr th:if="${#lists.isEmpty(eventos)}">
+        <td colspan="5">No hay eventos cargados.</td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>
