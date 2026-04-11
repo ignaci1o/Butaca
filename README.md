@@ -47,8 +47,9 @@ Estamos usando y proponiendo:
 
 1. Base de Spring Boot funcionando correctamente.
 2. Entidades, repositorios en memoria y logica principal de compra/validacion ya armadas.
-3. Se dejo una version MVC con HTML (`templates/eventos.html`) para pruebas rapidas.
-4. Proximo paso recomendado: migrar a enfoque REST puro (`@RestController`, JSON) para que un frontend externo consuma la API.
+3. La capa MVC con Thymeleaf fue eliminada para dejar de mezclar backend con vistas renderizadas en servidor.
+4. Existe un frontend separado en React dentro de `frontend/`, con componentes, paginas y servicios preparados para integrarse con Spring Boot.
+5. Todavia faltan los controladores REST (`@RestController`) para exponer la logica del backend como API JSON real.
 
 ## 6. Cambio de enfoque (importante para documentar)
 
@@ -84,10 +85,35 @@ No incluye en esta etapa:
 ## 9. Tecnologias en uso actual
 
 - Backend: Java + Spring Boot
-- API: HTTP REST (JSON)
-- Persistencia actual: en memoria (para MVP)
+- Frontend: React + Vite
+- API: objetivo REST con JSON, aun no expuesta completamente en el backend
+- Persistencia actual del backend: en memoria (para MVP)
 - Control de versiones: Git + Gitea
 
 ## 10. Proximo objetivo tecnico
 
-Dejar Butaca en modo Backend REST limpio, documentar endpoints y conectar frontend separado con un contrato API estable.
+Dejar Butaca en modo Backend REST limpio, documentar endpoints y conectar el frontend React con un contrato API estable.
+
+## 11. Estructura actual del repositorio
+
+### Backend
+
+- `src/main/java/com/demo/butaca/model`: entidades `Evento` y `Entrada`.
+- `src/main/java/com/demo/butaca/repository`: persistencia temporal en memoria con `Map`.
+- `src/main/java/com/demo/butaca/service`: logica principal de crear eventos, comprar entradas y validar codigos.
+- `src/main/java/com/demo/butaca/dto`: requests base para crear evento, comprar y validar.
+
+### Frontend
+
+- `frontend/src/pages`: pantallas principales del sitio.
+- `frontend/src/components`: componentes reutilizables de interfaz.
+- `frontend/src/services`: capa para consumir la API del backend o usar mocks.
+- `frontend/src/data`: datos mock para trabajar mientras la API REST no este lista.
+- `frontend/src/styles`: estilos globales.
+
+## 12. Estado real de integracion
+
+- El backend no usa base de datos todavia.
+- El backend mantiene los datos en memoria y los pierde al reiniciar.
+- El frontend React hoy funciona con datos mock.
+- La integracion real entre frontend y backend queda como siguiente etapa inmediata.

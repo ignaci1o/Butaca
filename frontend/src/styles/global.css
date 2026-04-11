@@ -1,0 +1,504 @@
+:root {
+  --background: #f4efe7;
+  --surface: #fffaf3;
+  --surface-strong: #11212d;
+  --surface-dark: #0a1520;
+  --border: #d6c9b8;
+  --text: #18232d;
+  --muted: #66727c;
+  --primary: #bf6f3b;
+  --primary-dark: #9b5527;
+  --accent: #0f766e;
+  --accent-soft: #dff4f1;
+  --shadow: 0 24px 60px rgba(17, 33, 45, 0.12);
+  --radius-lg: 28px;
+  --radius-md: 18px;
+  --radius-sm: 12px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  font-family: "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top left, rgba(191, 111, 59, 0.18), transparent 28%),
+    linear-gradient(180deg, #f7f2eb 0%, #f1e8dc 100%);
+  color: var(--text);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+img {
+  display: block;
+  width: 100%;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.container {
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.app-shell {
+  min-height: 100vh;
+}
+
+.navbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  backdrop-filter: blur(14px);
+  background: rgba(244, 239, 231, 0.84);
+  border-bottom: 1px solid rgba(214, 201, 184, 0.7);
+}
+
+.navbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 0;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, var(--primary), #f0a35b);
+  color: white;
+  font-weight: 800;
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand small,
+.section-text,
+.event-meta,
+.event-artist,
+.event-detail-artist,
+.hero-text,
+.footer p,
+.footer a,
+.results-count {
+  color: var(--muted);
+}
+
+.nav-links,
+.navbar-actions,
+.hero-actions,
+.highlight-stats,
+.tag-row,
+.checkout-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.nav-links a {
+  font-weight: 600;
+}
+
+.pill-link,
+.category-tab,
+.event-tag,
+.event-availability,
+.hero-badges span,
+.highlight-stats span {
+  border-radius: 999px;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  background: rgba(255, 250, 243, 0.9);
+}
+
+.text-link {
+  border: 0;
+  background: transparent;
+  color: var(--primary-dark);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.button {
+  border: 0;
+  border-radius: 999px;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  font-weight: 700;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button-primary {
+  background: linear-gradient(135deg, var(--primary), #e08d54);
+  color: white;
+}
+
+.button-secondary {
+  background: var(--surface);
+  color: var(--surface-strong);
+  border: 1px solid var(--border);
+}
+
+.button-ghost {
+  background: transparent;
+  color: var(--surface-strong);
+  border: 1px solid var(--border);
+}
+
+.button-full {
+  width: 100%;
+}
+
+.hero-section,
+.page-block,
+.home-section {
+  padding: 32px 0 48px;
+}
+
+.hero-grid,
+.event-detail-grid,
+.checkout-layout,
+.search-layout {
+  display: grid;
+  gap: 24px;
+}
+
+.hero-grid {
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: center;
+}
+
+.hero-copy h1,
+.confirmation-card h1,
+.event-info-card h1 {
+  margin: 0 0 16px;
+  font-size: clamp(2.3rem, 4vw, 4.6rem);
+  line-height: 0.98;
+  letter-spacing: -0.04em;
+}
+
+.hero-kicker,
+.section-eyebrow,
+.summary-eyebrow,
+.hero-card-label {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.78rem;
+  font-weight: 800;
+  color: var(--primary-dark);
+}
+
+.hero-card,
+.event-card,
+.event-info-card,
+.ticket-selector,
+.order-summary,
+.checkout-form,
+.search-panel,
+.confirmation-card,
+.highlight-strip {
+  background: rgba(255, 250, 243, 0.86);
+  border: 1px solid rgba(214, 201, 184, 0.8);
+  box-shadow: var(--shadow);
+  border-radius: var(--radius-lg);
+}
+
+.hero-card {
+  overflow: hidden;
+}
+
+.hero-card img {
+  height: 340px;
+  object-fit: cover;
+}
+
+.hero-card-body,
+.event-card-body,
+.event-info-card,
+.ticket-selector,
+.order-summary,
+.checkout-form,
+.search-panel,
+.confirmation-card,
+.highlight-strip {
+  padding: 24px;
+}
+
+.section-title {
+  margin-bottom: 22px;
+}
+
+.section-title h2,
+.ticket-selector h2 {
+  margin: 0 0 10px;
+  font-size: 2rem;
+}
+
+.category-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.category-tab {
+  cursor: pointer;
+}
+
+.category-tab.active {
+  background: var(--surface-strong);
+  color: white;
+  border-color: var(--surface-strong);
+}
+
+.event-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.event-card {
+  overflow: hidden;
+}
+
+.event-card-image {
+  height: 250px;
+  object-fit: cover;
+}
+
+.event-card-top,
+.summary-line,
+.confirmation-details,
+.event-detail-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.event-link {
+  display: inline-block;
+  margin-top: 12px;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.highlight-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin: 24px auto;
+}
+
+.event-detail-grid {
+  grid-template-columns: 1.2fr 0.8fr;
+  align-items: start;
+}
+
+.event-hero-panel,
+.ticket-panel {
+  display: grid;
+  gap: 20px;
+}
+
+.event-banner {
+  border-radius: var(--radius-lg);
+  height: 400px;
+  object-fit: cover;
+  box-shadow: var(--shadow);
+}
+
+.availability-alert {
+  margin-top: 20px;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: #fff0cc;
+  border: 1px solid #efc063;
+}
+
+.ticket-options {
+  display: grid;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+.ticket-option {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: white;
+  cursor: pointer;
+}
+
+.ticket-option.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.quantity-field,
+.search-panel label,
+.form-grid label {
+  display: grid;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.quantity-field select,
+.search-panel input,
+.search-panel select,
+.form-grid input {
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: white;
+}
+
+.order-summary {
+  position: sticky;
+  top: 100px;
+}
+
+.summary-line.total {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-weight: 800;
+}
+
+.search-layout,
+.checkout-layout {
+  grid-template-columns: 320px 1fr;
+  align-items: start;
+}
+
+.search-results {
+  min-width: 0;
+}
+
+.form-grid {
+  display: grid;
+  gap: 16px;
+  margin: 24px 0;
+}
+
+.confirmation-page {
+  display: grid;
+  place-items: center;
+}
+
+.confirmation-card {
+  max-width: 760px;
+}
+
+.confirmation-code {
+  display: inline-flex;
+  padding: 18px 22px;
+  border-radius: 18px;
+  background: var(--surface-strong);
+  color: white;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: 20px 0;
+}
+
+.confirmation-details {
+  margin-bottom: 24px;
+}
+
+.confirmation-details div,
+.footer-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.footer {
+  margin-top: 40px;
+  padding: 40px 0;
+  background: var(--surface-dark);
+  color: white;
+}
+
+.footer-grid {
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.footer h3,
+.footer h4 {
+  margin: 0;
+}
+
+.footer a {
+  display: block;
+}
+
+.empty-state {
+  padding: 28px;
+  border-radius: var(--radius-md);
+  background: rgba(255, 250, 243, 0.9);
+  border: 1px dashed var(--border);
+}
+
+@media (max-width: 960px) {
+  .hero-grid,
+  .event-detail-grid,
+  .checkout-layout,
+  .search-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .navbar-inner,
+  .nav-links,
+  .navbar-actions,
+  .highlight-strip {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .order-summary {
+    position: static;
+  }
+
+  .hero-copy h1,
+  .confirmation-card h1,
+  .event-info-card h1 {
+    font-size: 2.4rem;
+  }
+}
