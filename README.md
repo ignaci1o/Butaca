@@ -90,11 +90,25 @@ No incluye en esta etapa:
 - Persistencia actual del backend: en memoria (para MVP)
 - Control de versiones: Git + Gitea
 
-## 10. Proximo objetivo tecnico
+## 10. Entorno recomendado
+
+- Java: `17`
+- Node.js: `20.x`
+- npm: la version incluida con Node 20
+
+Para trabajar sin problemas entre la PC principal y la laptop:
+
+- usar la misma version de Java en ambas maquinas,
+- usar `nvm` y respetar el archivo `.nvmrc`,
+- no usar `npm install --force` ni `--legacy-peer-deps`,
+- mantener `package-lock.json` versionado,
+- hacer `git pull` antes de cambiar de maquina.
+
+## 11. Proximo objetivo tecnico
 
 Dejar Butaca en modo Backend REST limpio, documentar endpoints y conectar el frontend React con un contrato API estable.
 
-## 11. Estructura actual del repositorio
+## 12. Estructura actual del repositorio
 
 ### Backend
 
@@ -111,7 +125,7 @@ Dejar Butaca en modo Backend REST limpio, documentar endpoints y conectar el fro
 - `frontend/src/data`: datos mock para trabajar mientras la API REST no este lista.
 - `frontend/src/styles`: estilos globales.
 
-## 12. Estado real de integracion
+## 13. Estado real de integracion
 
 - El backend no usa base de datos todavia.
 - El backend mantiene los datos en memoria y los pierde al reiniciar.

@@ -33,6 +33,13 @@ Frontend React separado del backend Spring Boot.
 ## Ejecutar
 
 ```bash
+nvm use
 npm install
 npm run dev
 ```
+
+## Requisitos de entorno
+
+- Node.js `20.x`
+- Si usas `nvm`, la version recomendada esta fijada en el archivo raiz `.nvmrc`
+- El proyecto valida la version de Node antes de instalar o ejecutar Vite
