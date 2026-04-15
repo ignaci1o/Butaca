@@ -6,7 +6,7 @@ import SectionTitle from "../components/ui/SectionTitle";
 import { categoryOptions } from "../data/mockEvents";
 import { getAllEvents } from "../services/eventService";
 
-function HomePage() {
+function HomePage({ currentUser }) {
   const [events, setEvents] = useState([]);
   const [activeCategory, setActiveCategory] = useState("Todos");
 
@@ -52,6 +52,7 @@ function HomePage() {
           <span>React + Vite</span>
           <span>Listo para Spring Boot</span>
           <span>Componentes claros</span>
+          {currentUser ? <span>Sesion {currentUser.rol.replace("_", " ")}</span> : null}
         </div>
       </section>
 

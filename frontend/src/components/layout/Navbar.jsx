@@ -1,6 +1,8 @@
 import { Link, NavLink } from "react-router-dom";
 
-function Navbar() {
+function Navbar({ currentUser, onLogout }) {
+  const roleLabel = currentUser ? currentUser.rol.replace("_", " ") : null;
+
   return (
     <header className="navbar">
       <div className="container navbar-inner">
@@ -20,9 +22,21 @@ function Navbar() {
         </nav>
 
         <div className="navbar-actions">
-          <button className="text-link" type="button">
-            Ingresar
-          </button>
+          {currentUser ? (
+            <div className="account-chip">
+              <div>
+                <strong>{currentUser.nombre}</strong>
+                <small>Cuenta {roleLabel}</small>
+              </div>
+              <button className="text-link" type="button" onClick={onLogout}>
+                Salir
+              </button>
+            </div>
+          ) : (
+            <Link to="/login" className="text-link">
+              Ingresar
+            </Link>
+          )}
           <Link to="/buscar" className="pill-link">
             Explorar eventos
           </Link>

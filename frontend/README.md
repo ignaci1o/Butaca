@@ -18,8 +18,10 @@ Frontend React separado del backend Spring Boot.
 - `src/components/events/EventCard.jsx`: tarjeta de evento.
 - `src/pages/EventDetailPage.jsx`: pagina de detalle.
 - `src/pages/CheckoutPage.jsx`: flujo de compra.
+- `src/pages/LoginPage.jsx`: acceso de cuentas.
 - `src/services/apiClient.js`: URL base del backend.
 - `src/services/eventService.js`: endpoints de eventos.
+- `src/services/authService.js`: login de cuentas.
 
 ## Integracion con Spring Boot
 
@@ -29,17 +31,39 @@ Frontend React separado del backend Spring Boot.
    - `GET /api/eventos`
    - `GET /api/eventos/{id}`
    - `POST /api/pedidos`
+   - `POST /api/auth/login`
+
+## Login actual
+
+- Existe una pantalla en `src/pages/LoginPage.jsx`.
+- La sesion se guarda en `localStorage` usando `src/utils/authStorage.js`.
+- La barra superior muestra el nombre del usuario autenticado y el tipo de cuenta.
+- Por defecto, `src/services/authService.js` consume `POST /api/auth/login`.
+- Si necesitas una demo sin backend, puedes poner `useMockAuth = true` en `src/services/authService.js`.
 
 ## Ejecutar
 
 ```bash
-nvm use
 npm install
 npm run dev
 ```
 
 ## Requisitos de entorno
 
-- Node.js `20.x`
-- Si usas `nvm`, la version recomendada esta fijada en el archivo raiz `.nvmrc`
+- Node.js `20.19+`, `22.12+` o superior
+- El proyecto ya no queda fijado a Node 20 exclusivamente
+- `vite` y `@vitejs/plugin-react` fueron actualizados para trabajar con versiones modernas de Node
 - El proyecto valida la version de Node antes de instalar o ejecutar Vite
+
+## Stack actualizado
+
+- `react` y `react-dom`: linea `19.x`
+- `vite`: linea `8.x`
+- `@vitejs/plugin-react`: linea `5.x`
+
+Si vienes de un entorno anterior, ejecuta:
+
+```bash
+rm -rf node_modules package-lock.json
+npm install
+```

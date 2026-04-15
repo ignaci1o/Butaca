@@ -1,9 +1,14 @@
-const [major] = process.versions.node.split(".").map(Number);
+const [major, minor] = process.versions.node.split(".").map(Number);
 
-if (major !== 20) {
-  console.error("Node.js 20.x es obligatorio para este proyecto.");
+const isSupported =
+  (major === 20 && minor >= 19) ||
+  (major === 22 && minor >= 12) ||
+  major > 22;
+
+if (!isSupported) {
+  console.error("Este frontend requiere Node.js 20.19+, 22.12+ o superior.");
   console.error(`Version detectada: ${process.version}`);
-  console.error("Instala o activa Node 20 antes de ejecutar npm install o npm run dev.");
+  console.error("Actualiza Node antes de ejecutar npm install, npm run dev o npm run build.");
   process.exit(1);
 }
 
