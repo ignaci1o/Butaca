@@ -61,6 +61,20 @@ npm run dev
 - `vite`: linea `8.x`
 - `@vitejs/plugin-react`: linea `5.x`
 
+## Versiones aplicadas
+
+- `react`: `^19.2.0`
+- `react-dom`: `^19.2.0`
+- `vite`: `^8.0.8`
+- `@vitejs/plugin-react`: `^5.0.2`
+- compatibilidad de Node declarada: `>=20.19.0 || >=22.12.0`
+
+## Motivo de la actualizacion
+
+- el proyecto estaba fijado artificialmente a Node 20 por un chequeo local,
+- se ajusto el stack para aceptar versiones modernas de Node,
+- se actualizaron dependencias base para alinear frontend con un entorno mas actual y compatible.
+
 Si vienes de un entorno anterior, ejecuta:
 
 ```bash

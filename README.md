@@ -87,19 +87,21 @@ No incluye en esta etapa:
 - Backend: Java + Spring Boot
 - Frontend: React + Vite
 - API: objetivo REST con JSON, aun no expuesta completamente en el backend
-- Persistencia actual del backend: en memoria (para MVP)
+- Persistencia actual del backend: mixta
+- Usuarios: PostgreSQL + JPA
+- Eventos y entradas: en memoria por ahora
 - Control de versiones: Git + Gitea
 
 ## 10. Entorno recomendado
 
 - Java: `17`
-- Node.js: `20.x`
-- npm: la version incluida con Node 20
+- Node.js: `20.19+`, `22.12+` o superior
+- npm: la version incluida con una version compatible de Node
 
 Para trabajar sin problemas entre la PC principal y la laptop:
 
 - usar la misma version de Java en ambas maquinas,
-- usar `nvm` y respetar el archivo `.nvmrc`,
+- usar una version moderna y compatible de Node,
 - no usar `npm install --force` ni `--legacy-peer-deps`,
 - mantener `package-lock.json` versionado,
 - hacer `git pull` antes de cambiar de maquina.
@@ -401,6 +403,14 @@ Se actualizo la configuracion del frontend para dejar de depender exclusivamente
 - se actualizo `@vitejs/plugin-react` a la linea `5.x`,
 - se agrego `engines.node` en `frontend/package.json` para documentar compatibilidad.
 
+### Versiones concretas aplicadas
+
+- `react`: `^19.2.0`
+- `react-dom`: `^19.2.0`
+- `vite`: `^8.0.8`
+- `@vitejs/plugin-react`: `^5.0.2`
+- compatibilidad de Node declarada: `>=20.19.0 || >=22.12.0`
+
 ### Motivo del cambio
 
 El frontend estaba bloqueado artificialmente a Node 20 por un script local, aunque la herramienta base ya puede trabajar con versiones modernas de Node.
@@ -426,6 +436,18 @@ Si el lockfile viejo genera conflictos, conviene regenerarlo:
 ```bash
 rm -rf node_modules package-lock.json
 npm install
+```
+
+### Estado final esperado del frontend
+
+Despues de esta actualizacion, el frontend debe poder ejecutarse con una instalacion moderna de Node sin depender de `nvm` obligatoriamente.
+
+Comando esperado:
+
+```bash
+cd frontend
+npm install
+npm run dev
 ```
 
 ## 18. Registro de avance: integracion frontend-backend para login
