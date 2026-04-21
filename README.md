@@ -1,243 +1,201 @@
 # Butaca
 
-Sistema web de gestion y venta de entradas para eventos.
+Sistema web de gestion y venta de entradas para eventos. El proyecto evoluciono desde una idea MVC clasica hacia una arquitectura desacoplada con backend REST en Spring Boot y frontend separado en React.
 
-## 1. Contexto del proyecto
+Este README refleja el estado real del repositorio al dia de hoy, con foco en lo que ya funciona y en lo que falta para seguir avanzando sobre base de datos, frontend y conexion completa con backend.
 
-Butaca se desarrolla como una version propia y acotada de una ticketera digital, orientada a pequenos organizadores y eventos locales.
-El objetivo academico es construir un producto funcional, entendible y defendible, con evolucion por etapas (MVP primero, mejoras despues).
+## 1. Objetivo del proyecto
 
-Ademas, el equipo trabaja con control remoto del repositorio en Gitea, lo que permite colaboracion, versionado y trazabilidad de cambios.
-
-## 2. Problema a resolver
-
-Muchos organizadores pequenos no cuentan con una herramienta simple para:
+Butaca busca resolver un flujo basico de ticketera digital para organizadores pequenos y eventos locales:
 
 - publicar eventos,
+- listar y buscar eventos,
+- vender o reservar entradas,
 - controlar cupos,
-- registrar ventas/reservas,
-- validar entradas.
+- validar entradas por codigo unico,
+- manejar cuentas con distintos roles.
 
-Butaca busca centralizar esas operaciones en una solucion unica y clara.
-
-## 3. Propuesta de solucion
-
-El sistema permitira:
-
-- crear y listar eventos,
-- comprar entradas,
-- generar codigo unico por entrada (UUID),
-- asociar ese codigo a la entrada (base para QR),
-- validar entradas por codigo, evitando doble uso.
-
-## 4. Modelo de arquitectura adoptado
-
-Estamos usando y proponiendo:
-
-1. Modelo objetivo: arquitectura cliente-servidor con Backend REST API + Frontend separado.
-2. Paradigma de programacion: POO (Programacion Orientada a Objetos).
-3. Organizacion del backend: arquitectura por capas:
-
-- `controller` (endpoints HTTP)
-- `service` (logica de negocio)
-- `repository` (persistencia, actualmente en memoria)
-- `model` (entidades)
-
-## 5. Estado actual del desarrollo
-
-1. Base de Spring Boot funcionando correctamente.
-2. Entidades, repositorios en memoria y logica principal de compra/validacion ya armadas.
-3. La capa MVC con Thymeleaf fue eliminada para dejar de mezclar backend con vistas renderizadas en servidor.
-4. Existe un frontend separado en React dentro de `frontend/`, con componentes, paginas y servicios preparados para integrarse con Spring Boot.
-5. Todavia faltan los controladores REST (`@RestController`) para exponer la logica del backend como API JSON real.
-
-## 6. Cambio de enfoque (importante para documentar)
-
-- Antes: MVC clasico (backend renderiza vistas).
-- Ahora: REST desacoplado (backend expone datos y reglas; frontend maneja presentacion y UX).
-
-Esto no cambia la logica central del sistema, solo donde vive la capa de presentacion.
-
-## 7. Usuarios del sistema
-
-- Administrador: controla configuracion general, usuarios y operacion global.
-- Organizador: crea y gestiona eventos, entradas y seguimiento basico.
-- Cliente: consulta eventos y compra/reserva entradas.
-
-## 8. Alcance inicial (MVP academico)
-
-Incluye:
-
-- gestion basica de eventos,
-- compra/reserva de entradas,
-- control de cupos/disponibilidad,
-- generacion y validacion de codigo unico por entrada.
-
-No incluye en esta etapa:
-
-- pagos reales,
-- envio de correos,
-- app movil,
-- mapa de asientos,
-- promociones avanzadas,
-- seguridad avanzada de produccion.
-
-## 9. Tecnologias en uso actual
-
-- Backend: Java + Spring Boot
-- Frontend: React + Vite
-- API: objetivo REST con JSON, aun no expuesta completamente en el backend
-- Persistencia actual del backend: mixta
-- Usuarios: PostgreSQL + JPA
-- Eventos y entradas: en memoria por ahora
-- Control de versiones: Git + Gitea
-
-## 10. Entorno recomendado
-
-- Java: `17`
-- Node.js: `20.19+`, `22.12+` o superior
-- npm: la version incluida con una version compatible de Node
-
-Para trabajar sin problemas entre la PC principal y la laptop:
-
-- usar la misma version de Java en ambas maquinas,
-- usar una version moderna y compatible de Node,
-- no usar `npm install --force` ni `--legacy-peer-deps`,
-- mantener `package-lock.json` versionado,
-- hacer `git pull` antes de cambiar de maquina.
-
-## 11. Proximo objetivo tecnico
-
-Dejar Butaca en modo Backend REST limpio, documentar endpoints y conectar el frontend React con un contrato API estable.
-
-## 12. Estructura actual del repositorio
+## 2. Arquitectura actual
 
 ### Backend
 
-- `src/main/java/com/demo/butaca/model`: entidades `Evento` y `Entrada`.
-- `src/main/java/com/demo/butaca/repository`: persistencia temporal en memoria con `Map`.
-- `src/main/java/com/demo/butaca/service`: logica principal de crear eventos, comprar entradas y validar codigos.
-- `src/main/java/com/demo/butaca/dto`: requests base para crear evento, comprar y validar.
+- Java `17`
+- Spring Boot `4.0.5`
+- Spring Web MVC
+- Spring Data JPA
+- Validaciones con Jakarta Validation
+- Hash de password con BCrypt
+- PostgreSQL para el modulo de usuarios
 
 ### Frontend
 
-- `frontend/src/pages`: pantallas principales del sitio.
-- `frontend/src/components`: componentes reutilizables de interfaz.
-- `frontend/src/services`: capa para consumir la API del backend o usar mocks.
-- `frontend/src/data`: datos mock para trabajar mientras la API REST no este lista.
-- `frontend/src/styles`: estilos globales.
+- React `19.2.0`
+- Vite `8.0.8`
+- React Router DOM `6.30.1`
 
-## 13. Estado real de integracion
+### Enfoque de integracion
 
-- El backend no usa base de datos todavia.
-- El backend mantiene los datos en memoria y los pierde al reiniciar.
-- El frontend React hoy funciona con datos mock.
-- La integracion real entre frontend y backend queda como siguiente etapa inmediata.
+- Backend: expone y va a exponer endpoints REST bajo `/api`
+- Frontend: consume la API desde `http://localhost:8080/api`
+- CORS habilitado para `http://localhost:5173` y `http://127.0.0.1:5173`
 
-## 14. Preparacion de PostgreSQL en el proyecto
+## 3. Estado actual real del proyecto
 
-El proyecto ya queda preparado para conectarse a PostgreSQL desde Spring Boot.
+Hoy el proyecto esta dividido en dos niveles de madurez distintos.
 
-### Dependencias agregadas
+### Modulos ya conectados a base de datos
 
-En `pom.xml` se agregaron:
+El modulo de autenticacion ya usa PostgreSQL + JPA:
 
-- `spring-boot-starter-data-jpa`
-- `postgresql`
+- entidad `Usuario`,
+- enum `RolUsuario`,
+- `UsuarioRepository` con JPA,
+- `AuthService`,
+- `AuthController`,
+- password hasheada con BCrypt.
 
-Con eso, Maven descarga automaticamente el driver JDBC y el soporte JPA/Hibernate cuando ejecutes:
+### Modulos que todavia no estan persistidos ni expuestos como API REST
 
-```bash
-./mvnw clean compile
-```
+El flujo principal de negocio de ticketera todavia esta incompleto en terminos de integracion:
 
-o:
+- `Evento` y `Entrada` siguen siendo clases simples, no entidades JPA,
+- `EventoRepository` y `EntradaRepository` siguen en memoria con `Map`,
+- `TicketService` tiene logica de crear evento, comprar entrada y validar entrada,
+- no existen controladores REST para eventos, entradas ni compras,
+- al reiniciar el backend, los datos en memoria se pierden.
 
-```bash
-./mvnw spring-boot:run
-```
+### Estado real del frontend
 
-### Configuracion agregada
+El frontend ya tiene navegacion, pantallas y estructura de servicios, pero la integracion es parcial:
 
-En `src/main/resources/application.properties` queda configurada la conexion base:
+- login conectado al backend real,
+- sesion guardada en `localStorage`,
+- navbar mostrando nombre y rol del usuario autenticado,
+- eventos consumidos desde mocks,
+- checkout y pedidos consumidos desde mocks.
 
-```properties
-spring.datasource.url=jdbc:postgresql://100.73.210.97:5433/db_proyectos
-spring.datasource.username=${DB_USERNAME}
-spring.datasource.password=${DB_PASSWORD}
-spring.datasource.driver-class-name=org.postgresql.Driver
+En otras palabras:
 
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.PostgreSQLDialect
-spring.jpa.show-sql=true
-```
+- autenticacion: conectada,
+- eventos: simulados,
+- compras: simuladas,
+- validacion de entradas: todavia no conectada al frontend.
 
-### Donde poner usuario y password
+## 4. Ultimos cambios incorporados en el repositorio
 
-No se dejaron credenciales fijas dentro del repo. Tenes que definir estas variables de entorno antes de levantar el backend:
+Los cambios mas recientes que ya impactan el proyecto son estos:
 
-- `DB_USERNAME`
-- `DB_PASSWORD`
+1. se elimino la capa MVC con vistas renderizadas en servidor y se adopto frontend React separado,
+2. se agrego el flujo inicial de autenticacion con registro, login y roles,
+3. se preparo PostgreSQL y JPA para persistencia real,
+4. se habilito CORS para que el frontend en Vite pueda hablar con Spring Boot,
+5. se actualizo el stack del frontend a React 19 + Vite 8 y se amplio compatibilidad de Node.
 
-Ejemplo en Linux/macOS o Git Bash:
+## 5. Objetivos claros de la siguiente etapa
 
-```bash
-export DB_USERNAME=tu_usuario
-export DB_PASSWORD=tu_password
-./mvnw spring-boot:run
-```
+Para seguir programando sin desorden, conviene tomar como objetivos inmediatos los siguientes:
 
-Ejemplo en PowerShell:
+### Objetivo 1: completar la base de datos del dominio principal
 
-```powershell
-$env:DB_USERNAME="tu_usuario"
-$env:DB_PASSWORD="tu_password"
-./mvnw spring-boot:run
-```
+Pasar de una persistencia parcial a una persistencia coherente del sistema.
 
-### Importante
+Resultado esperado:
 
-Esto deja listo el proyecto para conectarse a PostgreSQL, pero el backend todavia no persiste en la base real porque los repositorios actuales siguen siendo en memoria.
+- usuarios, eventos y entradas guardados en PostgreSQL,
+- sin perdida de datos al reiniciar,
+- relaciones claras entre organizador, evento y entrada.
 
-Para completar la migracion faltan estos pasos:
+### Objetivo 2: cerrar la API REST del backend
 
-- convertir `Evento` y `Entrada` en entidades JPA (`@Entity`),
-- reemplazar los repositorios con `JpaRepository`,
-- crear los controladores REST que el frontend espera,
-- desactivar los mocks del frontend cuando la API este disponible.
+Exponer por endpoints HTTP la logica que ya existe y la que falta implementar.
 
-## 15. Modulo de cuentas inicial
+Resultado esperado:
 
-Se agrego una primera base real para cuentas de usuario usando PostgreSQL y JPA.
+- frontend sin mocks para eventos y compras,
+- contrato API estable,
+- validaciones y errores consistentes.
 
-### Estructura agregada
+### Objetivo 3: perfeccionar el frontend sobre datos reales
 
-- Entidad `Usuario`
-- Enum `RolUsuario` con valores `ADMIN`, `ORGANIZADOR`, `CLIENTE`
-- `UsuarioRepository` con JPA
-- `AuthService` para registro e inicio de sesion
-- `AuthController` con endpoints REST
+Una vez que la API exista, refinar UX, estados de carga, errores y flujos de usuario.
 
-### Tabla que crea Hibernate
+Resultado esperado:
 
-Con `spring.jpa.hibernate.ddl-auto=update`, al levantar la app se crea la tabla `usuarios` con estos campos:
+- login, listado de eventos, detalle, checkout y confirmacion conectados al backend,
+- interfaz mas robusta,
+- separacion clara entre vistas publicas y vistas de organizador/admin.
 
-- `id`
-- `nombre`
-- `apellido`
-- `email` unico
-- `password_hash`
-- `rol`
-- `activo`
-- `created_at`
+## 6. Lista de cambios necesarios para el proyecto
 
-### Endpoints disponibles
+Esta es la lista de trabajo recomendada para dejar el proyecto alineado con el objetivo final.
 
-#### Registro
+### Base de datos
 
-`POST /api/auth/register`
+- convertir `Evento` en entidad JPA,
+- convertir `Entrada` en entidad JPA,
+- definir relaciones entre `Usuario`, `Evento` y `Entrada`,
+- decidir si el organizador sera una referencia a `Usuario`,
+- agregar campos faltantes del dominio de eventos: descripcion, ciudad, recinto, precio base o estructura de precios, estado de publicacion, fecha y hora,
+- agregar restricciones e indices utiles,
+- revisar `ddl-auto=update` para desarrollo y definir una estrategia mas controlada para entregas futuras.
 
-Body de ejemplo:
+### Backend REST
+
+- crear `EventoController`,
+- crear endpoints para alta, listado y detalle de eventos,
+- crear endpoint de compra o reserva de entrada,
+- crear endpoint de validacion de entrada por codigo,
+- estandarizar respuestas y errores,
+- definir DTOs de request/response para eventos y compras,
+- mover reglas de negocio faltantes a servicios dedicados si el modulo crece.
+
+### Seguridad y cuentas
+
+- mantener el flujo actual de login como base,
+- agregar registro visual en el frontend,
+- evaluar incorporacion de Spring Security,
+- definir si la siguiente etapa va a usar JWT o sesion simple,
+- proteger endpoints por rol (`ADMIN`, `ORGANIZADOR`, `CLIENTE`).
+
+### Frontend
+
+- apagar mocks en `eventService` y `orderService` cuando exista API real,
+- conectar home, busqueda y detalle con datos del backend,
+- conectar checkout con compra real,
+- mostrar estados de loading, empty y error,
+- agregar formulario de registro,
+- preparar vistas para organizadores: crear y administrar eventos,
+- revisar componentes y estilos para mejorar claridad visual y consistencia de flujos.
+
+### Calidad y mantenimiento
+
+- agregar tests de servicios y controladores,
+- documentar contratos de API,
+- definir datos semilla para desarrollo,
+- revisar configuracion por ambientes,
+- separar configuracion sensible mediante variables de entorno.
+
+## 7. Orden recomendado de implementacion
+
+Para no bloquear frontend ni backend, este orden es el mas razonable:
+
+1. persistir `Evento` y `Entrada` en PostgreSQL,
+2. exponer endpoints REST de eventos,
+3. apagar mocks de eventos en el frontend,
+4. exponer compra/reserva de entradas,
+5. apagar mocks de checkout/pedidos,
+6. agregar validacion de entradas,
+7. recien despues endurecer seguridad y permisos por rol.
+
+## 8. Endpoints disponibles hoy
+
+Actualmente el backend expone solo autenticacion:
+
+### `POST /api/auth/register`
+
+Crea un usuario nuevo.
+
+Ejemplo de body:
 
 ```json
 {
@@ -249,11 +207,11 @@ Body de ejemplo:
 }
 ```
 
-#### Login
+### `POST /api/auth/login`
 
-`POST /api/auth/login`
+Valida credenciales y devuelve datos basicos del usuario.
 
-Body de ejemplo:
+Ejemplo de body:
 
 ```json
 {
@@ -262,110 +220,50 @@ Body de ejemplo:
 }
 ```
 
-### Estado actual del modulo
+## 9. Estructura actual del repositorio
 
-- La contraseña se guarda hasheada con BCrypt.
-- Todavia no hay JWT, sesiones ni Spring Security completo.
-- El login valida email y password, pero no genera token todavia.
-- Esto alcanza como base academica inicial para continuar con eventos y compras.
+### Backend
 
-## 16. Registro de avance: login, roles y primer flujo de cuentas
+- `src/main/java/com/demo/butaca/controller`: controladores y manejo global de errores.
+- `src/main/java/com/demo/butaca/service`: logica de autenticacion y ticketera.
+- `src/main/java/com/demo/butaca/repository`: JPA para usuarios e implementaciones en memoria para eventos/entradas.
+- `src/main/java/com/demo/butaca/model`: modelo de dominio.
+- `src/main/java/com/demo/butaca/dto`: contratos de entrada/salida.
+- `src/main/resources/application.properties`: configuracion de datasource y JPA.
 
-### Que se agrego
+### Frontend
 
-Se incorporo una primera implementacion completa del flujo de cuentas para el entregable:
+- `frontend/src/pages`: pantallas principales.
+- `frontend/src/components`: componentes de interfaz.
+- `frontend/src/services`: acceso a API y mocks.
+- `frontend/src/utils`: almacenamiento local y utilidades.
+- `frontend/src/data`: datos mock para eventos.
 
-- tabla `usuarios` generada por JPA/Hibernate,
-- registro de usuarios,
-- inicio de sesion por email y password,
-- roles de cuenta,
-- pantalla de login en React,
-- visualizacion del tipo de cuenta en la interfaz.
+## 10. Configuracion de PostgreSQL
 
-### Tipos de cuenta actuales
+El backend espera estas variables de entorno:
 
-El sistema ya contempla estos tipos:
+- `DB_USERNAME`
+- `DB_PASSWORD`
 
-- `ADMIN`: administracion general del sistema.
-- `ORGANIZADOR`: publicacion de eventos, gestion de entradas y revision basica de ventas.
-- `CLIENTE`: exploracion de eventos y compra o reserva de entradas.
+Configuracion actual:
 
-Por ahora el rol se devuelve en la respuesta del login y el frontend lo muestra en la barra superior para poder probar el comportamiento de cada perfil.
+```properties
+spring.datasource.url=jdbc:postgresql://100.73.210.97:5433/db_proyectos
+spring.datasource.username=${DB_USERNAME}
+spring.datasource.password=${DB_PASSWORD}
+spring.datasource.driver-class-name=org.postgresql.Driver
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.open-in-view=false
+spring.jpa.properties.hibernate.jdbc.time_zone=UTC
+```
 
-### Como funciona la autenticacion en esta etapa
+## 11. Como levantar el proyecto
 
-#### Backend
+### Backend
 
-El backend expone:
-
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-
-En el registro:
-
-1. se validan los datos del usuario,
-2. se normaliza el email,
-3. se verifica que no exista otro usuario con el mismo email,
-4. la password se hashea con BCrypt,
-5. se guarda el usuario en PostgreSQL.
-
-En el login:
-
-1. se busca el usuario por email,
-2. se verifica que la cuenta este activa,
-3. se compara la password enviada contra el hash guardado,
-4. si coincide, se devuelve la informacion basica del usuario y su rol.
-
-#### Frontend
-
-El frontend tiene una pantalla de acceso en `frontend/src/pages/LoginPage.jsx`.
-
-El flujo actual es:
-
-1. el usuario completa email y password,
-2. React llama a `POST /api/auth/login`,
-3. si la respuesta es valida, guarda el usuario en `localStorage`,
-4. la barra superior muestra nombre y tipo de cuenta,
-5. el usuario puede cerrar sesion y limpiar ese estado local.
-
-### Importante: que NO hace todavia esta autenticacion
-
-Esta primera version no tiene todavia:
-
-- JWT,
-- refresh token,
-- cookies seguras,
-- control fino de permisos por endpoint,
-- recuperacion de contrasena,
-- sesiones persistidas en servidor.
-
-O sea: hoy es una autenticacion academica inicial, suficiente para demostrar cuentas, login y roles, pero todavia no es un esquema de seguridad de produccion.
-
-### Por que Java + Spring Boot facilita esto
-
-Spring Boot simplifica este trabajo porque:
-
-- organiza el backend por capas claras (`controller`, `service`, `repository`, `model`),
-- integra JPA/Hibernate para mapear clases Java a tablas PostgreSQL,
-- facilita validaciones con anotaciones como `@NotBlank`, `@Email` y `@Valid`,
-- permite exponer endpoints REST de forma simple con `@RestController`,
-- se integra bien con hashing de contrasenas mediante BCrypt,
-- deja una base muy facil de extender luego a Spring Security, JWT y permisos reales.
-
-En este proyecto concreto, eso permite empezar simple y crecer por etapas sin rehacer toda la arquitectura.
-
-### Como probar el flujo
-
-1. levantar el backend con PostgreSQL configurado,
-2. registrar un usuario con `POST /api/auth/register`,
-3. levantar el frontend React,
-4. entrar a `/login`,
-5. iniciar sesion con ese usuario,
-6. verificar que la barra superior muestre el tipo de cuenta.
-
-### Comandos recomendados
-
-#### Backend
+En PowerShell:
 
 ```powershell
 $env:DB_USERNAME="tu_usuario"
@@ -374,7 +272,16 @@ $env:DB_PASSWORD="tu_password"
 .\mvnw.cmd spring-boot:run '-Dspring-boot.run.jvmArguments=-Duser.timezone=UTC'
 ```
 
-#### Frontend
+En Git Bash:
+
+```bash
+export DB_USERNAME=tu_usuario
+export DB_PASSWORD=tu_password
+./mvnw clean compile
+./mvnw spring-boot:run
+```
+
+### Frontend
 
 ```bash
 cd frontend
@@ -382,107 +289,28 @@ npm install
 npm run dev
 ```
 
-### Siguiente etapa recomendada
+Compatibilidad declarada de Node:
 
-Despues de cuentas, el siguiente modulo correcto es `eventos`, porque ahi se conecta el rol `ORGANIZADOR` con una funcionalidad concreta del sistema:
+- `>=20.19.0 || >=22.12.0`
 
-- crear eventos,
-- listar eventos,
-- publicarlos,
-- relacionarlos con el usuario organizador.
+## 12. Riesgos tecnicos actuales
 
-## 17. Registro de avance: actualizacion de stack frontend
+Estos puntos siguen abiertos y conviene tenerlos presentes mientras continues el desarrollo:
 
-Se actualizo la configuracion del frontend para dejar de depender exclusivamente de Node 20 y permitir un stack mas moderno.
+- el dominio principal del negocio todavia no persiste en base de datos,
+- el frontend puede dar una falsa sensacion de avance porque eventos y compras siguen mockeados,
+- no hay seguridad completa ni autorizacion por rol,
+- la cobertura de tests es minima,
+- la API todavia no tiene contrato cerrado para los modulos de eventos y compras.
 
-### Cambios realizados
+## 13. Definicion de trabajo inmediato
 
-- se actualizo la validacion de entorno para aceptar Node `20.19+`, `22.12+` o superior,
-- se actualizo `react` y `react-dom` a la linea `19.x`,
-- se actualizo `vite` a la linea `8.x`,
-- se actualizo `@vitejs/plugin-react` a la linea `5.x`,
-- se agrego `engines.node` en `frontend/package.json` para documentar compatibilidad.
+Si el objetivo ahora es seguir programando base de datos, perfeccionar frontend y conectar todo con backend, el siguiente entregable tecnico deberia ser este:
 
-### Versiones concretas aplicadas
+1. modelar `Evento` y `Entrada` como entidades JPA,
+2. crear endpoints REST de eventos,
+3. conectar el frontend de listado y detalle a esos endpoints,
+4. despues implementar compra real de entradas,
+5. finalmente mejorar UX y permisos por rol.
 
-- `react`: `^19.2.0`
-- `react-dom`: `^19.2.0`
-- `vite`: `^8.0.8`
-- `@vitejs/plugin-react`: `^5.0.2`
-- compatibilidad de Node declarada: `>=20.19.0 || >=22.12.0`
-
-### Motivo del cambio
-
-El frontend estaba bloqueado artificialmente a Node 20 por un script local, aunque la herramienta base ya puede trabajar con versiones modernas de Node.
-
-Con esta actualizacion:
-
-- se evita pelear con instalacion manual de Node 20,
-- se permite usar entornos actuales,
-- se reduce friccion para desarrollo local,
-- se mantiene compatibilidad con Vite moderno.
-
-### Que hacer despues de actualizar dependencias
-
-Dentro de `frontend/`:
-
-```bash
-npm install
-npm run dev
-```
-
-Si el lockfile viejo genera conflictos, conviene regenerarlo:
-
-```bash
-rm -rf node_modules package-lock.json
-npm install
-```
-
-### Estado final esperado del frontend
-
-Despues de esta actualizacion, el frontend debe poder ejecutarse con una instalacion moderna de Node sin depender de `nvm` obligatoriamente.
-
-Comando esperado:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-## 18. Registro de avance: integracion frontend-backend para login
-
-Se completo la primera conexion real entre el frontend React y el backend Spring Boot para el inicio de sesion.
-
-### Cambios funcionales
-
-- se agrego una pantalla de login en el frontend,
-- se almacena la sesion actual en `localStorage`,
-- la barra superior muestra nombre y tipo de cuenta,
-- el backend habilita CORS para `http://localhost:5173` y `http://127.0.0.1:5173`,
-- se corrigio el error `Failed to fetch` del navegador permitiendo llamadas desde Vite hacia Spring Boot.
-
-### Archivos clave
-
-- `frontend/src/pages/LoginPage.jsx`
-- `frontend/src/services/authService.js`
-- `frontend/src/utils/authStorage.js`
-- `frontend/src/components/layout/Navbar.jsx`
-- `src/main/java/com/demo/butaca/config/WebConfig.java`
-
-### Estado actual de la prueba
-
-El flujo validado hasta ahora es:
-
-1. crear usuario desde Bruno o cualquier cliente HTTP usando `POST /api/auth/register`,
-2. iniciar sesion con `POST /api/auth/login`,
-3. abrir `http://localhost:5173/login`,
-4. entrar con las mismas credenciales,
-5. ver en la interfaz el nombre del usuario y su rol.
-
-### Pendiente despues de este punto
-
-- proteger endpoints por rol,
-- agregar registro visual desde el frontend,
-- crear el modulo de eventos para organizadores,
-- conectar compras y reservas con cuentas reales.
+Ese orden evita rehacer trabajo y baja la cantidad de mocks que quedan dando vueltas en el proyecto.
