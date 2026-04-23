@@ -1,6 +1,9 @@
 import { request } from "./apiClient";
+import { getAuthToken } from "./authService"; // Asumiendo que podemos obtener de authService o localStorage
+// Si el frontend tiene un objeto currentUser, asumo que mandaremos usuario_id desde orderData.
+// Adaptamos orderData a lo que espera CompraRequestDTO
 
-export const useMockOrders = true;
+export const useMockOrders = false;
 
 export async function createOrder(orderData) {
   if (useMockOrders) {
@@ -11,8 +14,21 @@ export async function createOrder(orderData) {
     };
   }
 
-  return request("/pedidos", {
+  // Se asume que orderData provee eventoId y la app de React envia el usuario_id del estado global
+  const payload = {
+    evento_id: orderData.eventoId || orderData.items[0]?.id,
+    usuario_id: orderData.usuarioId || JSON.parse(localStorage.getItem("usuario"))?.id_usuario
+  };
+
+  const response = await request("/compras", {
     method: "POST",
-    body: JSON.stringify(orderData)
+    body: JSON.stringify(payload)
   });
+
+  // La API devuelve EntradaResponseDTO con codigo_unico_entrada
+  return {
+    codigoReserva: response.codigo_unico_entrada,
+    total: orderData.total,
+    comprador: orderData.comprador
+  };
 }

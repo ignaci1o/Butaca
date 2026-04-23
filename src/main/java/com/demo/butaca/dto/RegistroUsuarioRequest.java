@@ -1,6 +1,7 @@
 package com.demo.butaca.dto;
 
 import com.demo.butaca.model.RolUsuario;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -9,61 +10,66 @@ import jakarta.validation.constraints.Size;
 public class RegistroUsuarioRequest {
     @NotBlank
     @Size(max = 100)
-    private String nombre;
+    @JsonProperty("nombre_usuario")
+    private String nombreUsuario;
 
     @NotBlank
     @Size(max = 100)
-    private String apellido;
+    @JsonProperty("apellido_usuario")
+    private String apellidoUsuario;
 
     @NotBlank
     @Email
     @Size(max = 150)
-    private String email;
+    @JsonProperty("email_usuario")
+    private String emailUsuario;
 
     @NotBlank
     @Size(min = 6, max = 100)
-    private String password;
+    @JsonProperty("password_usuario")
+    private String passwordUsuario;
 
     @NotNull
-    private RolUsuario rol;
+    @JsonProperty("rol_usuario")
+    private RolUsuario rolUsuario;
 
-    public String getNombre() {
-        return nombre;
+    public String getNombreUsuario() {
+        return nombreUsuario;
     }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
+    public void setNombreUsuario(String nombreUsuario) {
+        this.nombreUsuario = nombreUsuario;
     }
 
-    public String getApellido() {
-        return apellido;
+    public String getApellidoUsuario() {
+        return apellidoUsuario;
     }
 
-    public void setApellido(String apellido) {
-        this.apellido = apellido;
+    public void setApellidoUsuario(String apellidoUsuario) {
+        this.apellidoUsuario = apellidoUsuario;
     }
 
-    public String getEmail() {
-        return email;
+    public String getEmailUsuario() {
+        return emailUsuario;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setEmailUsuario(String emailUsuario) {
+        this.emailUsuario = emailUsuario;
     }
 
-    public String getPassword() {
-        return password;
+    public String getPasswordUsuario() {
+        return passwordUsuario;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setPasswordUsuario(String passwordUsuario) {
+        this.passwordUsuario = passwordUsuario;
     }
 
-    public RolUsuario getRol() {
-        return rol;
+    public RolUsuario getRolUsuario() {
+        return rolUsuario;
     }
 
-    public void setRol(RolUsuario rol) {
-        this.rol = rol;
+    public void setRolUsuario(RolUsuario rolUsuario) {
+        this.rolUsuario = rolUsuario;
     }
 }

@@ -20,19 +20,18 @@ public class AuthService {
 
     @Transactional
     public AuthResponse registrar(RegistroUsuarioRequest request) {
-        String emailNormalizado = request.getEmail().trim().toLowerCase();
+        String emailNormalizado = request.getEmailUsuario().trim().toLowerCase();
 
-        if (usuarioRepository.existsByEmailIgnoreCase(emailNormalizado)) {
+        if (usuarioRepository.existsByEmailUsuarioIgnoreCase(emailNormalizado)) {
             throw new IllegalArgumentException("Ya existe un usuario con ese email");
         }
 
         Usuario usuario = new Usuario();
-        usuario.setNombre(request.getNombre().trim());
-        usuario.setApellido(request.getApellido().trim());
-        usuario.setEmail(emailNormalizado);
-        usuario.setPasswordHash(passwordEncoder.encode(request.getPassword()));
-        usuario.setRol(request.getRol());
-        usuario.setActivo(true);
+        usuario.setNombreUsuario(request.getNombreUsuario().trim());
+        usuario.setApellidoUsuario(request.getApellidoUsuario().trim());
+        usuario.setEmailUsuario(emailNormalizado);
+        usuario.setPasswordUsuario(passwordEncoder.encode(request.getPasswordUsuario()));
+        usuario.setRolUsuario(request.getRolUsuario());
 
         Usuario guardado = usuarioRepository.save(usuario);
         return toResponse(guardado, "Usuario registrado correctamente");
@@ -40,15 +39,11 @@ public class AuthService {
 
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
-        String emailNormalizado = request.getEmail().trim().toLowerCase();
-        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(emailNormalizado)
+        String emailNormalizado = request.getEmailUsuario().trim().toLowerCase();
+        Usuario usuario = usuarioRepository.findByEmailUsuarioIgnoreCase(emailNormalizado)
                 .orElseThrow(() -> new IllegalArgumentException("Credenciales invalidas"));
 
-        if (!usuario.isActivo()) {
-            throw new IllegalStateException("La cuenta se encuentra desactivada");
-        }
-
-        if (!passwordEncoder.matches(request.getPassword(), usuario.getPasswordHash())) {
+        if (!passwordEncoder.matches(request.getPasswordUsuario(), usuario.getPasswordUsuario())) {
             throw new IllegalArgumentException("Credenciales invalidas");
         }
 
@@ -57,11 +52,11 @@ public class AuthService {
 
     private AuthResponse toResponse(Usuario usuario, String mensaje) {
         return new AuthResponse(
-                usuario.getId(),
-                usuario.getNombre(),
-                usuario.getApellido(),
-                usuario.getEmail(),
-                usuario.getRol(),
+                usuario.getIdUsuario(),
+                usuario.getNombreUsuario(),
+                usuario.getApellidoUsuario(),
+                usuario.getEmailUsuario(),
+                usuario.getRolUsuario(),
                 mensaje
         );
     }

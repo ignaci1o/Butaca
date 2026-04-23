@@ -1,29 +1,14 @@
 package com.demo.butaca.repository;
 
 import com.demo.butaca.model.Entrada;
-import org.springframework.stereotype.Repository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.UUID;
 
-@Repository
-public class EntradaRepository {
-    private final Map<Long, Entrada> entradasById = new HashMap<>();
-    private final Map<String, Entrada> entradasByCodigo = new HashMap<>();
-    private final AtomicLong sequence = new AtomicLong(1);
-
-    public Entrada save(Entrada entrada) {
-        if (entrada.getId() == null) {
-            entrada.setId(sequence.getAndIncrement());
-        }
-        entradasById.put(entrada.getId(), entrada);
-        entradasByCodigo.put(entrada.getCodigoUnico(), entrada);
-        return entrada;
-    }
-
-    public Optional<Entrada> findByCodigoUnico(String codigoUnico) {
-        return Optional.ofNullable(entradasByCodigo.get(codigoUnico));
-    }
+public interface EntradaRepository extends JpaRepository<Entrada, Long> {
+    Optional<Entrada> findByCodigoUnicoEntrada(UUID codigoUnicoEntrada);
+    List<Entrada> findByUsuarioIdUsuario(Long idUsuario);
+    List<Entrada> findByEventoIdEvento(Long idEvento);
 }

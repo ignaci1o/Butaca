@@ -1,31 +1,30 @@
 import { mockEvents } from "../data/mockEvents";
 import { request } from "./apiClient";
 
-export const useMockData = true;
+export const useMockData = false;
 
 function mapSpringEvent(evento) {
   return {
-    id: evento.id,
-    slug: `evento-${evento.id}`,
-    nombre: evento.nombre,
-    artista: evento.artista || evento.nombre,
-    categoria: evento.categoria || "Conciertos",
-    ciudad: evento.ciudad || "Ciudad sin definir",
-    recinto: evento.recinto || "Recinto sin definir",
-    fecha: evento.fecha,
-    hora: evento.hora || "20:00",
-    precioMinimo: evento.precioMinimo || 0,
-    precioMaximo: evento.precioMaximo || evento.precioMinimo || 0,
-    destacados: Boolean(evento.destacado),
+    id: evento.id_evento,
+    slug: `evento-${evento.id_evento}`,
+    nombre: evento.titulo_evento,
+    artista: evento.titulo_evento,
+    categoria: "Conciertos",
+    ciudad: evento.ubicacion_evento || "Ciudad sin definir",
+    recinto: evento.detalles_ubicacion_evento || "Recinto sin definir",
+    fecha: evento.fecha_evento,
+    hora: evento.hora_evento || "20:00",
+    precioMinimo: evento.precio_entrada_evento || 0,
+    precioMaximo: evento.precio_entrada_evento || 0,
+    destacados: false,
     popular: true,
-    disponibilidad: evento.entradasDisponibles || 0,
-    imagen:
-      evento.imagen ||
-      "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
-    descripcion: evento.descripcion || "Evento disponible en Butaca.",
-    etiquetas: evento.etiquetas || ["Disponible"],
-    tiposEntrada:
-      evento.tiposEntrada || [{ id: "general", nombre: "General", precio: evento.precioMinimo || 0 }]
+    disponibilidad: evento.cupos_disponible_evento || 0,
+    imagen: "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80",
+    descripcion: evento.descripcion_evento || "Evento disponible en Butaca.",
+    etiquetas: ["Disponible"],
+    tiposEntrada: [
+      { id: "general", nombre: "General", precio: evento.precio_entrada_evento || 0 }
+    ]
   };
 }
 

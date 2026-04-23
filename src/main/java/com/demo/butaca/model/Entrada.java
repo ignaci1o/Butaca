@@ -1,50 +1,79 @@
 package com.demo.butaca.model;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+
+import java.util.UUID;
+
+@Entity
+@Table(name = "entradas")
 public class Entrada {
-    private Long id;
-    private Long eventoId;
-    private String codigoUnico;
-    private boolean usada;
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_entrada")
+    private Long idEntrada;
+
+    @Column(name = "codigo_unico_entrada", nullable = false, unique = true)
+    private UUID codigoUnicoEntrada;
+
+    @Column(name = "estado_entrada", nullable = false, length = 20)
+    private String estadoEntrada; // enum: CONFIRMADA, USADA, ANULADA
+
+    @ManyToOne
+    @JoinColumn(name = "evento_id", nullable = false)
+    private Evento evento;
+
+    @ManyToOne
+    @JoinColumn(name = "usuario_id", nullable = false)
+    private Usuario usuario;
 
     public Entrada() {
     }
 
-    public Entrada(Long id, Long eventoId, String codigoUnico, boolean usada) {
-        this.id = id;
-        this.eventoId = eventoId;
-        this.codigoUnico = codigoUnico;
-        this.usada = usada;
+    public Long getIdEntrada() {
+        return idEntrada;
     }
 
-    public Long getId() {
-        return id;
+    public void setIdEntrada(Long idEntrada) {
+        this.idEntrada = idEntrada;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public UUID getCodigoUnicoEntrada() {
+        return codigoUnicoEntrada;
     }
 
-    public Long getEventoId() {
-        return eventoId;
+    public void setCodigoUnicoEntrada(UUID codigoUnicoEntrada) {
+        this.codigoUnicoEntrada = codigoUnicoEntrada;
     }
 
-    public void setEventoId(Long eventoId) {
-        this.eventoId = eventoId;
+    public String getEstadoEntrada() {
+        return estadoEntrada;
     }
 
-    public String getCodigoUnico() {
-        return codigoUnico;
+    public void setEstadoEntrada(String estadoEntrada) {
+        this.estadoEntrada = estadoEntrada;
     }
 
-    public void setCodigoUnico(String codigoUnico) {
-        this.codigoUnico = codigoUnico;
+    public Evento getEvento() {
+        return evento;
     }
 
-    public boolean isUsada() {
-        return usada;
+    public void setEvento(Evento evento) {
+        this.evento = evento;
     }
 
-    public void setUsada(boolean usada) {
-        this.usada = usada;
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 }

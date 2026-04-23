@@ -1,65 +1,76 @@
 package com.demo.butaca.dto;
 
 import com.demo.butaca.model.RolUsuario;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class AuthResponse {
-    private Long id;
-    private String nombre;
-    private String apellido;
-    private String email;
-    private RolUsuario rol;
+    @JsonProperty("id_usuario")
+    private Long idUsuario;
+
+    @JsonProperty("nombre_usuario")
+    private String nombreUsuario;
+
+    @JsonProperty("apellido_usuario")
+    private String apellidoUsuario;
+
+    @JsonProperty("email_usuario")
+    private String emailUsuario;
+
+    @JsonProperty("rol_usuario")
+    private RolUsuario rolUsuario;
+
     private String mensaje;
 
     public AuthResponse() {
     }
 
-    public AuthResponse(Long id, String nombre, String apellido, String email, RolUsuario rol, String mensaje) {
-        this.id = id;
-        this.nombre = nombre;
-        this.apellido = apellido;
-        this.email = email;
-        this.rol = rol;
+    public AuthResponse(Long idUsuario, String nombreUsuario, String apellidoUsuario, String emailUsuario, RolUsuario rolUsuario, String mensaje) {
+        this.idUsuario = idUsuario;
+        this.nombreUsuario = nombreUsuario;
+        this.apellidoUsuario = apellidoUsuario;
+        this.emailUsuario = emailUsuario;
+        this.rolUsuario = rolUsuario;
         this.mensaje = mensaje;
     }
 
-    public Long getId() {
-        return id;
+    public Long getIdUsuario() {
+        return idUsuario;
     }
 
-    public void setId(Long id) {
-        this.id = id;
+    public void setIdUsuario(Long idUsuario) {
+        this.idUsuario = idUsuario;
     }
 
-    public String getNombre() {
-        return nombre;
+    public String getNombreUsuario() {
+        return nombreUsuario;
     }
 
-    public void setNombre(String nombre) {
-        this.nombre = nombre;
+    public void setNombreUsuario(String nombreUsuario) {
+        this.nombreUsuario = nombreUsuario;
     }
 
-    public String getApellido() {
-        return apellido;
+    public String getApellidoUsuario() {
+        return apellidoUsuario;
     }
 
-    public void setApellido(String apellido) {
-        this.apellido = apellido;
+    public void setApellidoUsuario(String apellidoUsuario) {
+        this.apellidoUsuario = apellidoUsuario;
     }
 
-    public String getEmail() {
-        return email;
+    public String getEmailUsuario() {
+        return emailUsuario;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setEmailUsuario(String emailUsuario) {
+        this.emailUsuario = emailUsuario;
     }
 
-    public RolUsuario getRol() {
-        return rol;
+    public RolUsuario getRolUsuario() {
+        return rolUsuario;
     }
 
-    public void setRol(RolUsuario rol) {
-        this.rol = rol;
+    public void setRolUsuario(RolUsuario rolUsuario) {
+        this.rolUsuario = rolUsuario;
     }
 
     public String getMensaje() {
