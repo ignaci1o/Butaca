@@ -1,18 +1,18 @@
 # Butaca
 
-Sistema web de gestion y venta de entradas para eventos. El proyecto evoluciono desde una idea MVC clasica hacia una arquitectura desacoplada con backend REST en Spring Boot y frontend separado en React.
+Sistema web de gestión y venta de entradas para eventos. El proyecto evolucionó desde una idea MVC clásica hacia una arquitectura desacoplada con backend REST en Spring Boot y frontend separado en React.
 
-Este README refleja el estado real del repositorio al dia de hoy, con foco en lo que ya funciona y en lo que falta para seguir avanzando sobre base de datos, frontend y conexion completa con backend.
+Este README refleja el estado real del repositorio al día de hoy. El dominio principal ya se encuentra completamente persistido en PostgreSQL y expuesto vía API REST.
 
 ## 1. Objetivo del proyecto
 
-Butaca busca resolver un flujo basico de ticketera digital para organizadores pequenos y eventos locales:
+Butaca busca resolver un flujo básico de ticketera digital para organizadores pequeños y eventos locales:
 
 - publicar eventos,
 - listar y buscar eventos,
 - vender o reservar entradas,
 - controlar cupos,
-- validar entradas por codigo unico,
+- validar entradas por código único,
 - manejar cuentas con distintos roles.
 
 ## 2. Arquitectura actual
@@ -25,7 +25,7 @@ Butaca busca resolver un flujo basico de ticketera digital para organizadores pe
 - Spring Data JPA
 - Validaciones con Jakarta Validation
 - Hash de password con BCrypt
-- PostgreSQL para el modulo de usuarios
+- PostgreSQL para persistencia de todas las entidades
 
 ### Frontend
 
@@ -33,220 +33,96 @@ Butaca busca resolver un flujo basico de ticketera digital para organizadores pe
 - Vite `8.0.8`
 - React Router DOM `6.30.1`
 
-### Enfoque de integracion
+### Enfoque de integración
 
-- Backend: expone y va a exponer endpoints REST bajo `/api`
+- Backend: expone endpoints REST bajo `/api`
 - Frontend: consume la API desde `http://localhost:8080/api`
 - CORS habilitado para `http://localhost:5173` y `http://127.0.0.1:5173`
 
 ## 3. Estado actual real del proyecto
 
-Hoy el proyecto esta dividido en dos niveles de madurez distintos.
+Hoy el proyecto tiene el flujo principal completamente conectado a base de datos real.
 
-### Modulos ya conectados a base de datos
+### Módulos persistidos en PostgreSQL
 
-El modulo de autenticacion ya usa PostgreSQL + JPA:
+El sistema utiliza Spring Data JPA para todo su dominio:
 
-- entidad `Usuario`,
-- enum `RolUsuario`,
-- `UsuarioRepository` con JPA,
-- `AuthService`,
-- `AuthController`,
-- password hasheada con BCrypt.
-
-### Modulos que todavia no estan persistidos ni expuestos como API REST
-
-El flujo principal de negocio de ticketera todavia esta incompleto en terminos de integracion:
-
-- `Evento` y `Entrada` siguen siendo clases simples, no entidades JPA,
-- `EventoRepository` y `EntradaRepository` siguen en memoria con `Map`,
-- `TicketService` tiene logica de crear evento, comprar entrada y validar entrada,
-- no existen controladores REST para eventos, entradas ni compras,
-- al reiniciar el backend, los datos en memoria se pierden.
+- Entidad `Usuario`: maneja autenticación, encriptación con BCrypt y roles.
+- Entidad `Evento`: eventos publicados por los organizadores con control de cupos.
+- Entidad `Entrada`: tickets generados tras una compra, vinculados a un código único UUID y con estados de validación.
+- Relaciones establecidas entre Organizador, Evento y Entrada (Cliente).
 
 ### Estado real del frontend
 
-El frontend ya tiene navegacion, pantallas y estructura de servicios, pero la integracion es parcial:
+El frontend consume la API REST real provista por el backend. El uso de mocks de datos locales fue desactivado completamente:
 
-- login conectado al backend real,
-- sesion guardada en `localStorage`,
-- navbar mostrando nombre y rol del usuario autenticado,
-- eventos consumidos desde mocks,
-- checkout y pedidos consumidos desde mocks.
+- Login conectado al backend real y guardado en `localStorage`.
+- Eventos consumidos directamente desde `/api/eventos`.
+- Checkout y compras consumidas enviando datos al endpoint `/api/compras` y recibiendo códigos de reserva reales.
 
-En otras palabras:
+## 4. Últimos cambios incorporados
 
-- autenticacion: conectada,
-- eventos: simulados,
-- compras: simuladas,
-- validacion de entradas: todavia no conectada al frontend.
+Los cambios más recientes que ya impactan el proyecto son estos:
 
-## 4. Ultimos cambios incorporados en el repositorio
+1. Se refactorizaron las entidades `Evento` y `Entrada` para usar Spring Data JPA con la nomenclatura estricta solicitada (`id_usuario`, `titulo_evento`, etc.).
+2. Se eliminaron los mapas en memoria y se reemplazaron por `JpaRepository`.
+3. Se estructuró la lógica de negocio en módulos dedicados: `EventoService`, `EntradaService` y `CompraService`.
+4. Se expuso toda la lógica mediante Controladores REST con DTOs de Request y Response usando anotaciones `@JsonProperty` para coincidir con la nomenclatura de la base de datos.
+5. Se implementó un `GlobalExceptionHandler` para atrapar excepciones de forma limpia y retornar códigos HTTP apropiados.
+6. Se añadió un `DataLoader` que inyecta cuentas base (Admin, Organizador, Cliente) y eventos de ejemplo de forma automática.
+7. Se actualizó el frontend (`eventService.js` y `orderService.js`) para apagar los mocks y consumir los endpoints.
 
-Los cambios mas recientes que ya impactan el proyecto son estos:
+## 5. Endpoints disponibles hoy
 
-1. se elimino la capa MVC con vistas renderizadas en servidor y se adopto frontend React separado,
-2. se agrego el flujo inicial de autenticacion con registro, login y roles,
-3. se preparo PostgreSQL y JPA para persistencia real,
-4. se habilito CORS para que el frontend en Vite pueda hablar con Spring Boot,
-5. se actualizo el stack del frontend a React 19 + Vite 8 y se amplio compatibilidad de Node.
+### Módulo 1: Auth
+- `POST /api/auth/register` (Crea usuario nuevo)
+- `POST /api/auth/login` (Devuelve token/información)
 
-## 5. Objetivos claros de la siguiente etapa
+### Módulo 2 y 5: Eventos
+- `POST /api/eventos` (Alta de evento por Organizador)
+- `GET /api/eventos` (Listado público de eventos PUBLICADOS)
+- `GET /api/eventos/{id}` (Detalle de un evento)
+- `PUT /api/eventos/{id}` (Editar evento)
+- `GET /api/eventos/organizador/{id}` (Eventos de un organizador)
+- `GET /api/eventos/{id}/entradas` (Entradas vendidas para un evento)
+- `PUT /api/eventos/{id}/publicar` (Cambiar estado a PUBLICADO)
 
-Para seguir programando sin desorden, conviene tomar como objetivos inmediatos los siguientes:
+### Módulo 3: Entradas
+- `GET /api/entradas/validar/{codigo}` (Validar código único UUID)
+- `PUT /api/entradas/{id}/usar` (Marcar entrada como USADA)
+- `GET /api/entradas/usuario/{id}` (Listar compras de un usuario)
 
-### Objetivo 1: completar la base de datos del dominio principal
+### Módulo 4: Compras
+- `POST /api/compras` (Procesar compra, descontar cupo y emitir UUID)
+- `GET /api/compras/usuario/{id}` (Historial de compras)
 
-Pasar de una persistencia parcial a una persistencia coherente del sistema.
-
-Resultado esperado:
-
-- usuarios, eventos y entradas guardados en PostgreSQL,
-- sin perdida de datos al reiniciar,
-- relaciones claras entre organizador, evento y entrada.
-
-### Objetivo 2: cerrar la API REST del backend
-
-Exponer por endpoints HTTP la logica que ya existe y la que falta implementar.
-
-Resultado esperado:
-
-- frontend sin mocks para eventos y compras,
-- contrato API estable,
-- validaciones y errores consistentes.
-
-### Objetivo 3: perfeccionar el frontend sobre datos reales
-
-Una vez que la API exista, refinar UX, estados de carga, errores y flujos de usuario.
-
-Resultado esperado:
-
-- login, listado de eventos, detalle, checkout y confirmacion conectados al backend,
-- interfaz mas robusta,
-- separacion clara entre vistas publicas y vistas de organizador/admin.
-
-## 6. Lista de cambios necesarios para el proyecto
-
-Esta es la lista de trabajo recomendada para dejar el proyecto alineado con el objetivo final.
-
-### Base de datos
-
-- convertir `Evento` en entidad JPA,
-- convertir `Entrada` en entidad JPA,
-- definir relaciones entre `Usuario`, `Evento` y `Entrada`,
-- decidir si el organizador sera una referencia a `Usuario`,
-- agregar campos faltantes del dominio de eventos: descripcion, ciudad, recinto, precio base o estructura de precios, estado de publicacion, fecha y hora,
-- agregar restricciones e indices utiles,
-- revisar `ddl-auto=update` para desarrollo y definir una estrategia mas controlada para entregas futuras.
-
-### Backend REST
-
-- crear `EventoController`,
-- crear endpoints para alta, listado y detalle de eventos,
-- crear endpoint de compra o reserva de entrada,
-- crear endpoint de validacion de entrada por codigo,
-- estandarizar respuestas y errores,
-- definir DTOs de request/response para eventos y compras,
-- mover reglas de negocio faltantes a servicios dedicados si el modulo crece.
-
-### Seguridad y cuentas
-
-- mantener el flujo actual de login como base,
-- agregar registro visual en el frontend,
-- evaluar incorporacion de Spring Security,
-- definir si la siguiente etapa va a usar JWT o sesion simple,
-- proteger endpoints por rol (`ADMIN`, `ORGANIZADOR`, `CLIENTE`).
-
-### Frontend
-
-- apagar mocks en `eventService` y `orderService` cuando exista API real,
-- conectar home, busqueda y detalle con datos del backend,
-- conectar checkout con compra real,
-- mostrar estados de loading, empty y error,
-- agregar formulario de registro,
-- preparar vistas para organizadores: crear y administrar eventos,
-- revisar componentes y estilos para mejorar claridad visual y consistencia de flujos.
-
-### Calidad y mantenimiento
-
-- agregar tests de servicios y controladores,
-- documentar contratos de API,
-- definir datos semilla para desarrollo,
-- revisar configuracion por ambientes,
-- separar configuracion sensible mediante variables de entorno.
-
-## 7. Orden recomendado de implementacion
-
-Para no bloquear frontend ni backend, este orden es el mas razonable:
-
-1. persistir `Evento` y `Entrada` en PostgreSQL,
-2. exponer endpoints REST de eventos,
-3. apagar mocks de eventos en el frontend,
-4. exponer compra/reserva de entradas,
-5. apagar mocks de checkout/pedidos,
-6. agregar validacion de entradas,
-7. recien despues endurecer seguridad y permisos por rol.
-
-## 8. Endpoints disponibles hoy
-
-Actualmente el backend expone solo autenticacion:
-
-### `POST /api/auth/register`
-
-Crea un usuario nuevo.
-
-Ejemplo de body:
-
-```json
-{
-  "nombre": "Leandro",
-  "apellido": "Gramajo Gargiulo",
-  "email": "leandro@example.com",
-  "password": "clave123",
-  "rol": "ORGANIZADOR"
-}
-```
-
-### `POST /api/auth/login`
-
-Valida credenciales y devuelve datos basicos del usuario.
-
-Ejemplo de body:
-
-```json
-{
-  "email": "leandro@example.com",
-  "password": "clave123"
-}
-```
-
-## 9. Estructura actual del repositorio
+## 6. Estructura actual del repositorio
 
 ### Backend
 
-- `src/main/java/com/demo/butaca/controller`: controladores y manejo global de errores.
-- `src/main/java/com/demo/butaca/service`: logica de autenticacion y ticketera.
-- `src/main/java/com/demo/butaca/repository`: JPA para usuarios e implementaciones en memoria para eventos/entradas.
-- `src/main/java/com/demo/butaca/model`: modelo de dominio.
-- `src/main/java/com/demo/butaca/dto`: contratos de entrada/salida.
-- `src/main/resources/application.properties`: configuracion de datasource y JPA.
+- `src/main/java/com/demo/butaca/controller`: controladores REST y `GlobalExceptionHandler`.
+- `src/main/java/com/demo/butaca/service`: servicios de negocio segmentados (`Auth`, `Evento`, `Entrada`, `Compra`).
+- `src/main/java/com/demo/butaca/repository`: Repositorios Spring Data JPA.
+- `src/main/java/com/demo/butaca/model`: Entidades JPA de dominio.
+- `src/main/java/com/demo/butaca/dto`: Contratos JSON de entrada y salida con nomenclatura forzada.
+- `src/main/java/com/demo/butaca/config`: Contiene el `DataLoader` que inicializa datos semilla.
+- `src/main/resources/application.properties`: configuración de datasource y JPA.
 
 ### Frontend
 
 - `frontend/src/pages`: pantallas principales.
 - `frontend/src/components`: componentes de interfaz.
-- `frontend/src/services`: acceso a API y mocks.
+- `frontend/src/services`: acceso a la API REST real.
 - `frontend/src/utils`: almacenamiento local y utilidades.
-- `frontend/src/data`: datos mock para eventos.
 
-## 10. Configuracion de PostgreSQL
+## 7. Configuración de PostgreSQL
 
 El backend espera estas variables de entorno:
 
 - `DB_USERNAME`
 - `DB_PASSWORD`
 
-Configuracion actual:
+Configuración actual:
 
 ```properties
 spring.datasource.url=jdbc:postgresql://100.73.210.97:5433/db_proyectos
@@ -259,7 +135,7 @@ spring.jpa.open-in-view=false
 spring.jpa.properties.hibernate.jdbc.time_zone=UTC
 ```
 
-## 11. Como levantar el proyecto
+## 8. Cómo levantar el proyecto
 
 ### Backend
 
@@ -272,7 +148,7 @@ $env:DB_PASSWORD="tu_password"
 .\mvnw.cmd spring-boot:run '-Dspring-boot.run.jvmArguments=-Duser.timezone=UTC'
 ```
 
-En Git Bash:
+En Git Bash o Linux/Mac:
 
 ```bash
 export DB_USERNAME=tu_usuario
@@ -293,24 +169,10 @@ Compatibilidad declarada de Node:
 
 - `>=20.19.0 || >=22.12.0`
 
-## 12. Riesgos tecnicos actuales
+## 9. Próximos pasos a futuro
 
-Estos puntos siguen abiertos y conviene tenerlos presentes mientras continues el desarrollo:
+Dado que el motor principal ya está operando sobre base de datos y endpoints reales, los próximos pasos recomendados son:
 
-- el dominio principal del negocio todavia no persiste en base de datos,
-- el frontend puede dar una falsa sensacion de avance porque eventos y compras siguen mockeados,
-- no hay seguridad completa ni autorizacion por rol,
-- la cobertura de tests es minima,
-- la API todavia no tiene contrato cerrado para los modulos de eventos y compras.
-
-## 13. Definicion de trabajo inmediato
-
-Si el objetivo ahora es seguir programando base de datos, perfeccionar frontend y conectar todo con backend, el siguiente entregable tecnico deberia ser este:
-
-1. modelar `Evento` y `Entrada` como entidades JPA,
-2. crear endpoints REST de eventos,
-3. conectar el frontend de listado y detalle a esos endpoints,
-4. despues implementar compra real de entradas,
-5. finalmente mejorar UX y permisos por rol.
-
-Ese orden evita rehacer trabajo y baja la cantidad de mocks que quedan dando vueltas en el proyecto.
+1. **Seguridad Avanzada**: Migrar la sesión estática o el almacenamiento básico en `localStorage` hacia un esquema con **JWT (JSON Web Tokens)** o Spring Security robusto que proteja las rutas mediante filtros reales.
+2. **Registro de Usuarios en UI**: Conectar el formulario visual de registro en el frontend con el endpoint `/api/auth/register`.
+3. **Módulo de Organizadores Completo**: Construir las pantallas de Dashboard en React donde un Organizador pueda crear un evento visualmente y publicarlo.
