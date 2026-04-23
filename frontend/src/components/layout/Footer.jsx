@@ -5,25 +5,29 @@ function Footer() {
         <div>
           <h3>Butaca</h3>
           <p>
-            Frontend React listo para conectarse con un backend Java Spring Boot y crecer por
-            modulos.
+            Plataforma de venta de entradas conectada a Spring Boot. 
+            Diseñada para crecer por módulos.
           </p>
         </div>
         <div>
-          <h4>Secciones</h4>
+          <h4>Plataforma</h4>
           <a href="/">Inicio</a>
-          <a href="/buscar">Buscar</a>
+          <a href="/buscar">Buscar eventos</a>
           <a href="#colecciones">Colecciones</a>
         </div>
         <div>
-          <h4>Operaciones</h4>
-          <a href="/">Compra de entradas</a>
-          <a href="/">Validacion</a>
-          <a href="/">Panel futuro</a>
+          <h4>Cuenta</h4>
+          <a href="/login">Ingresar</a>
+          <a href="/registro">Registrarse</a>
+          <a href="/dashboard">Panel organizador</a>
         </div>
         <div>
-          <h4>Integracion</h4>
-          <p>API base esperada: `/api/eventos` y `/api/pedidos`</p>
+          <h4>API</h4>
+          <p style={{ fontFamily: "monospace", fontSize: "0.78rem", lineHeight: 1.8 }}>
+            GET /api/eventos<br />
+            POST /api/compras<br />
+            POST /api/auth/login
+          </p>
         </div>
       </div>
     </footer>

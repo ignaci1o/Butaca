@@ -1,78 +1,157 @@
-# Frontend Butaca
+# Frontend — Butaca
 
-Este es el frontend en React, completamente integrado con la API REST de Spring Boot y la base de datos PostgreSQL.
-
-## 1. Estructura del Código
-
-- `src/pages/`: Las ventanas o pantallas completas de la aplicación.
-- `src/components/`: Componentes reutilizables (Navbar, EventCard, etc.).
-- `src/services/`: Clientes para la API (`apiClient.js`, `eventService.js`, `authService.js`, `orderService.js`).
-- `src/utils/`: Funciones auxiliares como el manejo de sesión en `localStorage`.
-- `src/styles/`: Estilos globales y específicos.
-
-## 2. Flujo de Interacción: Ventanas vs. Base de Datos
-
-Cada pantalla del frontend dispara interacciones específicas que recorren la red hasta Spring Boot y terminan afectando o leyendo tablas particulares en PostgreSQL. Aquí se detalla la conexión exacta:
-
-### 🎟️ 1. Exploración y Detalle (`HomePage.jsx`, `SearchPage.jsx`, `EventDetailPage.jsx`)
-- **Acción del Usuario:** El usuario entra a la página principal o busca eventos para ver su disponibilidad y detalles.
-- **Llamada a la API:** `GET /api/eventos` y `GET /api/eventos/{id}`.
-- **Módulo Backend:** `EventoController` ➔ `EventoService`.
-- **Tabla en Base de Datos:** Lee de la tabla `eventos`. La consulta filtra exclusivamente los eventos que tienen el campo `estado_publicacion_evento = 'PUBLICADO'`.
-
-### 🔐 2. Autenticación (`LoginPage.jsx` y `RegisterPage.jsx`)
-- **Acción del Usuario:** El usuario se registra como Cliente/Productora o inicia sesión.
-- **Llamadas a la API:** 
-  - `POST /api/auth/register` (Registro)
-  - `POST /api/auth/login` (Login)
-- **Módulo Backend:** `AuthController` ➔ `AuthService`.
-- **Tabla en Base de Datos:** Interacciona con la tabla `usuarios`. 
-  - En el registro, hace un `INSERT` con el `rol_usuario` (CLIENTE u ORGANIZADOR) y guarda la `password_usuario` encriptada con BCrypt. 
-  - En el login, hace un `SELECT` buscando por `email_usuario`.
-
-### 🛒 3. Compra de Entradas (`CheckoutPage.jsx` y `ConfirmationPage.jsx`)
-- **Acción del Usuario:** Un cliente logueado decide comprar una entrada y confirma su reserva.
-- **Llamada a la API:** `POST /api/compras` enviando el `evento_id` y `usuario_id`.
-- **Módulo Backend:** `CompraController` ➔ `CompraService` (100% Transaccional).
-- **Tablas en Base de Datos:**
-  1. Lee la tabla `eventos` para verificar que el `cupos_disponible_evento` sea mayor a 0.
-  2. **Actualiza** la tabla `eventos` restando `-1` al campo `cupos_disponible_evento`.
-  3. Hace un **INSERT** en la tabla `entradas` vinculando las claves foráneas del usuario y evento, y genera automáticamente un `codigo_unico_entrada` (UUID) en estado `CONFIRMADA`.
-
-### 📊 4. Panel de Productora (`OrganizerDashboard.jsx`)
-- **Acción del Usuario:** Un usuario con rol `ORGANIZADOR` o `ADMIN` entra a "Mi Panel" para ver sus eventos, crear uno nuevo o publicarlos.
-- **Llamadas a la API:**
-  - `GET /api/eventos/organizador/{id}`: Lee todos los eventos (Borradores y Publicados) que le pertenecen.
-  - `POST /api/eventos`: Envía el formulario para crear un evento nuevo.
-  - `PUT /api/eventos/{id}/publicar`: Hace público un borrador.
-- **Módulo Backend:** `EventoController` ➔ `EventoService`.
-- **Tabla en Base de Datos:** Todo ocurre en la tabla `eventos`. 
-  - Al crear, hace un `INSERT` seteando el `estado_publicacion_evento = 'BORRADOR'`.
-  - Al publicar, hace un `UPDATE` cambiando el estado a `'PUBLICADO'`.
+> React + Vite · Tema oscuro premium · Conectado a Spring Boot + PostgreSQL
 
 ---
 
-## 3. Integración con Spring Boot
+## Estado actual del proyecto
 
-Asegúrate de que los mocks estén apagados en los servicios correspondientes (`src/services/`) para conectarte a la base de datos real:
+| Área | Estado |
+|---|---|
+| Diseño visual | ✅ Tema oscuro premium (v2) |
+| Conexión a API REST | ✅ Activa (mocks desactivados) |
+| Autenticación | ✅ Login + Registro contra backend |
+| Panel Organizador | ✅ Crear, listar y publicar eventos |
+| Compra de entradas | ✅ Checkout transaccional |
+| Build de producción | ✅ Sin errores (`vite build`) |
 
-1. `useMockData = false` en `eventService.js`.
-2. `useMockOrders = false` en `orderService.js`.
-3. `useMockAuth = false` en `authService.js`.
+---
 
-El `apiClient.js` está configurado para buscar el backend en `http://localhost:8080/api`.
+## Diseño — v2 (Abril 2026)
 
-## 4. Cómo Ejecutar
+El frontend fue rediseñado completamente con un sistema visual unificado:
+
+- **Paleta oscura profunda** — fondo `#080c12`, degradados sutiles naranja/teal como acentos de fondo.
+- **Glassmorphism** — todas las cards usan `backdrop-filter: blur()` con bordes translúcidos (`rgba`).
+- **Tipografía Inter** — cargada desde Google Fonts, pesos 400–900 para jerarquía clara.
+- **Variables CSS centralizadas** — colores, sombras y radii definidos en `:root` en `global.css`.
+- **Micro-animaciones** — cards se elevan al hover, imagen hace zoom, flecha del link se desplaza.
+- **Inputs con foco naranja** — `box-shadow` glow en todos los campos de formulario.
+
+### Archivos modificados en el rediseño
+
+| Archivo | Cambio |
+|---|---|
+| `src/styles/global.css` | Reescritura completa del sistema de diseño |
+| `index.html` | Agregado Google Fonts (Inter + DM Serif Display) |
+| `src/components/layout/Navbar.jsx` | Avatar con inicial, links con estado activo |
+| `src/components/layout/Footer.jsx` | Grid 4 columnas, referencia de endpoints de API |
+| `src/components/home/HeroSection.jsx` | Fallback cuando no hay evento destacado |
+| `src/components/events/EventCard.jsx` | Hover con elevación y zoom de imagen |
+
+---
+
+## Estructura del código
+
+```
+src/
+├── pages/               # Pantallas completas
+│   ├── HomePage.jsx
+│   ├── SearchPage.jsx
+│   ├── EventDetailPage.jsx
+│   ├── CheckoutPage.jsx
+│   ├── ConfirmationPage.jsx
+│   ├── LoginPage.jsx
+│   ├── RegisterPage.jsx
+│   └── OrganizerDashboard.jsx
+├── components/
+│   ├── layout/          # Navbar, Footer, AppShell
+│   ├── home/            # HeroSection, CategoryTabs
+│   ├── events/          # EventCard, EventGrid
+│   ├── checkout/        # Componentes del carrito
+│   └── ui/              # Button, SectionTitle, etc.
+├── services/            # Clientes de API
+│   ├── apiClient.js     # fetch base → http://localhost:8080/api
+│   ├── authService.js   # login, register
+│   ├── eventService.js  # getAllEvents, getEventById
+│   └── orderService.js  # createOrder
+├── utils/
+│   ├── authStorage.js   # Persistencia de sesión en localStorage
+│   └── formatters.js    # formatDate, formatPrice
+├── data/
+│   └── mockEvents.js    # Datos de prueba (solo fallback)
+└── styles/
+    └── global.css       # Sistema de diseño completo
+```
+
+---
+
+## Flujo de interacción: Pantallas → API → Base de datos
+
+### 🎟️ 1. Exploración de Eventos (`HomePage`, `SearchPage`, `EventDetailPage`)
+- **Acción:** El usuario navega y filtra eventos.
+- **API:** `GET /api/eventos` · `GET /api/eventos/{id}`
+- **Backend:** `EventoController` → `EventoService`
+- **DB:** Tabla `eventos` — filtra por `estado_publicacion_evento = 'PUBLICADO'`
+
+### 🔐 2. Autenticación (`LoginPage`, `RegisterPage`)
+- **Acción:** El usuario se registra o inicia sesión.
+- **API:**
+  - `POST /api/auth/register`
+  - `POST /api/auth/login`
+- **Backend:** `AuthController` → `AuthService`
+- **DB:** Tabla `usuarios`
+  - Registro: `INSERT` con `rol_usuario` y `password_usuario` encriptada con BCrypt.
+  - Login: `SELECT` por `email_usuario`. Devuelve objeto de usuario que se guarda en `localStorage`.
+
+### 🛒 3. Compra de Entradas (`CheckoutPage`, `ConfirmationPage`)
+- **Acción:** Un cliente logueado compra una entrada.
+- **API:** `POST /api/compras` (envía `evento_id` + `usuario_id`)
+- **Backend:** `CompraController` → `CompraService` (transaccional)
+- **DB:**
+  1. `SELECT` en `eventos` — verifica `cupos_disponible_evento > 0`
+  2. `UPDATE` en `eventos` — resta `-1` a `cupos_disponible_evento`
+  3. `INSERT` en `entradas` — genera `codigo_unico_entrada` (UUID) en estado `CONFIRMADA`
+
+### 📊 4. Panel Organizador (`OrganizerDashboard`)
+- **Acción:** Un `ORGANIZADOR` o `ADMIN` gestiona sus eventos.
+- **API:**
+  - `GET /api/eventos/organizador/{id}` — lista propios (borrador + publicado)
+  - `POST /api/eventos` — crea nuevo evento en estado `BORRADOR`
+  - `PUT /api/eventos/{id}/publicar` — cambia estado a `PUBLICADO`
+- **Backend:** `EventoController` → `EventoService`
+- **DB:** Tabla `eventos` — INSERT y UPDATE según la acción.
+
+---
+
+## Integración con Spring Boot
+
+Los mocks están **desactivados**. El frontend consume directamente el backend en:
+
+```
+http://localhost:8080/api
+```
+
+Verificá en `src/services/`:
+
+```js
+// eventService.js
+export const useMockData = false;
+
+// orderService.js
+export const useMockOrders = false;
+
+// authService.js
+export const useMockAuth = false;
+```
+
+---
+
+## Cómo ejecutar
 
 ```bash
 # Instalar dependencias
 npm install
 
-# Levantar servidor de desarrollo
+# Servidor de desarrollo (http://localhost:5173)
 npm run dev
+
+# Build de producción
+npm run build
 ```
 
-**Requisitos de entorno:**
-- Node.js `>=20.19.0 || >=22.12.0`
-- React y React DOM `19.x`
-- Vite `8.x`
+**Requisitos:**
+- Node.js `>=20.19.0` o `>=22.12.0`
+- React `19.x` · React Router `6.x` · Vite `8.x`
+
+> ⚠️ El backend Spring Boot debe estar corriendo en el puerto `8080` antes de usar el frontend.

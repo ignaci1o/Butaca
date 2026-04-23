@@ -1,6 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
 
 function Navbar({ currentUser, onLogout }) {
+  const initial = currentUser ? currentUser.nombre?.[0]?.toUpperCase() : null;
   const roleLabel = currentUser ? currentUser.rol.replace("_", " ") : null;
 
   return (
@@ -24,15 +25,25 @@ function Navbar({ currentUser, onLogout }) {
         <div className="navbar-actions">
           {currentUser ? (
             <>
-              {(currentUser.rol === 'ORGANIZADOR' || currentUser.rol === 'ADMIN') && (
-                <Link to="/dashboard" className="text-link" style={{ marginRight: '1rem', fontWeight: 'bold' }}>
+              {(currentUser.rol === "ORGANIZADOR" || currentUser.rol === "ADMIN") && (
+                <Link to="/dashboard" className="text-link">
                   Mi Panel
                 </Link>
               )}
               <div className="account-chip">
+                <div
+                  style={{
+                    width: 30, height: 30, borderRadius: "50%",
+                    background: "linear-gradient(135deg, var(--primary), var(--primary-2))",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontWeight: 800, fontSize: "0.8rem", color: "#fff", flexShrink: 0
+                  }}
+                >
+                  {initial}
+                </div>
                 <div>
                   <strong>{currentUser.nombre}</strong>
-                  <small>Cuenta {roleLabel}</small>
+                  <small>{roleLabel}</small>
                 </div>
                 <button className="text-link" type="button" onClick={onLogout}>
                   Salir
@@ -41,16 +52,12 @@ function Navbar({ currentUser, onLogout }) {
             </>
           ) : (
             <>
-              <Link to="/login" className="text-link" style={{ marginRight: '1rem' }}>
-                Ingresar
-              </Link>
-              <Link to="/registro" className="text-link">
-                Registrarse
-              </Link>
+              <Link to="/login" className="text-link">Ingresar</Link>
+              <Link to="/registro" className="text-link">Registrarse</Link>
             </>
           )}
           <Link to="/buscar" className="pill-link">
-            Explorar eventos
+            Explorar →
           </Link>
         </div>
       </div>
