@@ -23,19 +23,31 @@ function Navbar({ currentUser, onLogout }) {
 
         <div className="navbar-actions">
           {currentUser ? (
-            <div className="account-chip">
-              <div>
-                <strong>{currentUser.nombre}</strong>
-                <small>Cuenta {roleLabel}</small>
+            <>
+              {(currentUser.rol === 'ORGANIZADOR' || currentUser.rol === 'ADMIN') && (
+                <Link to="/dashboard" className="text-link" style={{ marginRight: '1rem', fontWeight: 'bold' }}>
+                  Mi Panel
+                </Link>
+              )}
+              <div className="account-chip">
+                <div>
+                  <strong>{currentUser.nombre}</strong>
+                  <small>Cuenta {roleLabel}</small>
+                </div>
+                <button className="text-link" type="button" onClick={onLogout}>
+                  Salir
+                </button>
               </div>
-              <button className="text-link" type="button" onClick={onLogout}>
-                Salir
-              </button>
-            </div>
+            </>
           ) : (
-            <Link to="/login" className="text-link">
-              Ingresar
-            </Link>
+            <>
+              <Link to="/login" className="text-link" style={{ marginRight: '1rem' }}>
+                Ingresar
+              </Link>
+              <Link to="/registro" className="text-link">
+                Registrarse
+              </Link>
+            </>
           )}
           <Link to="/buscar" className="pill-link">
             Explorar eventos

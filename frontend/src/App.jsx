@@ -7,6 +7,8 @@ import EventDetailPage from "./pages/EventDetailPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import ConfirmationPage from "./pages/ConfirmationPage";
 import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/RegisterPage";
+import OrganizerDashboard from "./pages/OrganizerDashboard";
 import { clearAuthenticatedUser, getAuthenticatedUser, saveAuthenticatedUser } from "./utils/authStorage";
 
 function App() {
@@ -31,6 +33,8 @@ function App() {
         <Route path="/checkout" element={<CheckoutPage />} />
         <Route path="/confirmacion" element={<ConfirmationPage />} />
         <Route path="/login" element={<LoginPage currentUser={currentUser} onLogin={handleLogin} />} />
+        <Route path="/registro" element={<RegisterPage />} />
+        <Route path="/dashboard" element={<OrganizerDashboard currentUser={currentUser} />} />
       </Routes>
     </AppShell>
   );

@@ -56,3 +56,15 @@ export async function loginUser(credentials) {
     body: JSON.stringify(credentials)
   });
 }
+
+export async function registerUser(userData) {
+  if (useMockAuth) {
+    throw new Error("El registro requiere conexión real al backend");
+  }
+
+  // userData debe coincidir con RegistroUsuarioRequest
+  return request("/auth/register", {
+    method: "POST",
+    body: JSON.stringify(userData)
+  });
+}
