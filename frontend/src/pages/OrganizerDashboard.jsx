@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { request } from "../../services/apiClient";
+import { request } from "../services/apiClient";
 
 function OrganizerDashboard({ currentUser }) {
   const [eventos, setEventos] = useState([]);

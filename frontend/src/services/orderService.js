@@ -1,5 +1,5 @@
 import { request } from "./apiClient";
-import { getAuthToken } from "./authService"; // Asumiendo que podemos obtener de authService o localStorage
+
 // Si el frontend tiene un objeto currentUser, asumo que mandaremos usuario_id desde orderData.
 // Adaptamos orderData a lo que espera CompraRequestDTO
 
