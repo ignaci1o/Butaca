@@ -1,10 +1,19 @@
 package com.demo.butaca.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class EntradaResponseDTO {
-
     @JsonProperty("id_entrada")
     private Long idEntrada;
 
@@ -14,20 +23,18 @@ public class EntradaResponseDTO {
     @JsonProperty("estado_entrada")
     private String estadoEntrada;
 
+    @JsonProperty("fecha_compra")
+    private LocalDateTime fechaCompra;
+
+    @JsonProperty("fecha_validacion")
+    private LocalDateTime fechaValidacion;
+
     @JsonProperty("evento_id")
     private Long eventoId;
 
     @JsonProperty("usuario_id")
     private Long usuarioId;
 
-    public Long getIdEntrada() { return idEntrada; }
-    public void setIdEntrada(Long idEntrada) { this.idEntrada = idEntrada; }
-    public UUID getCodigoUnicoEntrada() { return codigoUnicoEntrada; }
-    public void setCodigoUnicoEntrada(UUID codigoUnicoEntrada) { this.codigoUnicoEntrada = codigoUnicoEntrada; }
-    public String getEstadoEntrada() { return estadoEntrada; }
-    public void setEstadoEntrada(String estadoEntrada) { this.estadoEntrada = estadoEntrada; }
-    public Long getEventoId() { return eventoId; }
-    public void setEventoId(Long eventoId) { this.eventoId = eventoId; }
-    public Long getUsuarioId() { return usuarioId; }
-    public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
+    @JsonProperty("compra_id")
+    private Long compraId;
 }

@@ -11,4 +11,5 @@ public interface EntradaRepository extends JpaRepository<Entrada, Long> {
     Optional<Entrada> findByCodigoUnicoEntrada(UUID codigoUnicoEntrada);
     List<Entrada> findByUsuarioIdUsuario(Long idUsuario);
     List<Entrada> findByEventoIdEvento(Long idEvento);
+    List<Entrada> findByCompraId(Long compraId);
 }

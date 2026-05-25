@@ -1,18 +1,32 @@
 package com.demo.butaca.model;
 
 import jakarta.persistence.Column;
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "usuarios")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Usuario {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_usuario")
@@ -30,58 +44,43 @@ public class Usuario {
     @Column(name = "password_usuario", nullable = false, length = 255)
     private String passwordUsuario;
 
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+    @JoinColumn(name = "rol_id")
+    private Rol rol;
+
+    @Column(name = "telefono", length = 20)
+    private String telefono;
+
+    @Builder.Default
+    @Column(name = "estado_usuario", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
-    @Column(name = "rol_usuario", nullable = false, length = 20)
-    private RolUsuario rolUsuario;
+    private EstadoUsuario estadoUsuario = EstadoUsuario.ACTIVO;
 
-    public Usuario() {
-    }
+    @Column(name = "fecha_registro")
+    private LocalDateTime fechaRegistro;
 
-    public Long getIdUsuario() {
-        return idUsuario;
-    }
-
-    public void setIdUsuario(Long idUsuario) {
-        this.idUsuario = idUsuario;
-    }
-
-    public String getNombreUsuario() {
-        return nombreUsuario;
-    }
-
-    public void setNombreUsuario(String nombreUsuario) {
-        this.nombreUsuario = nombreUsuario;
-    }
-
-    public String getApellidoUsuario() {
-        return apellidoUsuario;
-    }
-
-    public void setApellidoUsuario(String apellidoUsuario) {
-        this.apellidoUsuario = apellidoUsuario;
-    }
-
-    public String getEmailUsuario() {
-        return emailUsuario;
-    }
-
-    public void setEmailUsuario(String emailUsuario) {
-        this.emailUsuario = emailUsuario;
-    }
-
-    public String getPasswordUsuario() {
-        return passwordUsuario;
-    }
-
-    public void setPasswordUsuario(String passwordUsuario) {
-        this.passwordUsuario = passwordUsuario;
+    @PrePersist
+    public void prePersist() {
+        if (fechaRegistro == null) {
+            fechaRegistro = LocalDateTime.now();
+        }
+        if (estadoUsuario == null) {
+            estadoUsuario = EstadoUsuario.ACTIVO;
+        }
     }
 
     public RolUsuario getRolUsuario() {
-        return rolUsuario;
+        if (rol == null || rol.getNombre() == null) {
+            return null;
+        }
+        return RolUsuario.valueOf(rol.getNombre());
     }
 
     public void setRolUsuario(RolUsuario rolUsuario) {
-        this.rolUsuario = rolUsuario;
+        this.rol = rolUsuario == null ? null : Rol.builder().nombre(rolUsuario.name()).build();
+    }
+
+    public void setEstadoUsuario(String estadoUsuario) {
+        this.estadoUsuario = estadoUsuario == null ? null : EstadoUsuario.valueOf(estadoUsuario);
     }
 }

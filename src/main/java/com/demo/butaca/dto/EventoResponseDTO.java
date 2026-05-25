@@ -1,12 +1,20 @@
 package com.demo.butaca.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class EventoResponseDTO {
-
     @JsonProperty("id_evento")
     private Long idEvento;
 
@@ -34,37 +42,24 @@ public class EventoResponseDTO {
     @JsonProperty("cupos_totales_evento")
     private Integer cuposTotalesEvento;
 
+    @JsonProperty("cupos_disponibles")
+    private Integer cuposDisponibles;
+
     @JsonProperty("cupos_disponible_evento")
     private Integer cuposDisponibleEvento;
 
     @JsonProperty("estado_publicacion_evento")
     private String estadoPublicacionEvento;
 
+    @JsonProperty("imagen_url")
+    private String imagenUrl;
+
+    @JsonProperty("categoria_id")
+    private Long categoriaId;
+
+    @JsonProperty("categoria_nombre")
+    private String categoriaNombre;
+
     @JsonProperty("organizador_id_evento")
     private Long organizadorIdEvento;
-
-    public Long getIdEvento() { return idEvento; }
-    public void setIdEvento(Long idEvento) { this.idEvento = idEvento; }
-    public String getTituloEvento() { return tituloEvento; }
-    public void setTituloEvento(String tituloEvento) { this.tituloEvento = tituloEvento; }
-    public String getDescripcionEvento() { return descripcionEvento; }
-    public void setDescripcionEvento(String descripcionEvento) { this.descripcionEvento = descripcionEvento; }
-    public String getUbicacionEvento() { return ubicacionEvento; }
-    public void setUbicacionEvento(String ubicacionEvento) { this.ubicacionEvento = ubicacionEvento; }
-    public String getDetallesUbicacionEvento() { return detallesUbicacionEvento; }
-    public void setDetallesUbicacionEvento(String detallesUbicacionEvento) { this.detallesUbicacionEvento = detallesUbicacionEvento; }
-    public LocalDate getFechaEvento() { return fechaEvento; }
-    public void setFechaEvento(LocalDate fechaEvento) { this.fechaEvento = fechaEvento; }
-    public LocalTime getHoraEvento() { return horaEvento; }
-    public void setHoraEvento(LocalTime horaEvento) { this.horaEvento = horaEvento; }
-    public BigDecimal getPrecioEntradaEvento() { return precioEntradaEvento; }
-    public void setPrecioEntradaEvento(BigDecimal precioEntradaEvento) { this.precioEntradaEvento = precioEntradaEvento; }
-    public Integer getCuposTotalesEvento() { return cuposTotalesEvento; }
-    public void setCuposTotalesEvento(Integer cuposTotalesEvento) { this.cuposTotalesEvento = cuposTotalesEvento; }
-    public Integer getCuposDisponibleEvento() { return cuposDisponibleEvento; }
-    public void setCuposDisponibleEvento(Integer cuposDisponibleEvento) { this.cuposDisponibleEvento = cuposDisponibleEvento; }
-    public String getEstadoPublicacionEvento() { return estadoPublicacionEvento; }
-    public void setEstadoPublicacionEvento(String estadoPublicacionEvento) { this.estadoPublicacionEvento = estadoPublicacionEvento; }
-    public Long getOrganizadorIdEvento() { return organizadorIdEvento; }
-    public void setOrganizadorIdEvento(Long organizadorIdEvento) { this.organizadorIdEvento = organizadorIdEvento; }
 }

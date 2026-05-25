@@ -1,20 +1,23 @@
 package com.demo.butaca.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "eventos")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Evento {
 
     @Id
@@ -28,10 +31,10 @@ public class Evento {
     @Column(name = "descripcion_evento", columnDefinition = "TEXT")
     private String descripcionEvento;
 
-    @Column(name = "ubicacion_evento", nullable = false, length = 150)
+    @Column(name = "ubicacion_evento", nullable = false, length = 300)
     private String ubicacionEvento;
 
-    @Column(name = "detalles_ubicacion_evento", length = 255)
+    @Column(name = "detalles_ubicacion_evento", length = 500)
     private String detallesUbicacionEvento;
 
     @Column(name = "fecha_evento", nullable = false)
@@ -46,112 +49,33 @@ public class Evento {
     @Column(name = "cupos_totales_evento", nullable = false)
     private Integer cuposTotalesEvento;
 
-    @Column(name = "cupos_disponible_evento", nullable = false)
-    private Integer cuposDisponibleEvento;
+    @Column(name = "cupos_disponibles_evento", nullable = false)
+    private int cuposDisponibles;
 
     @Column(name = "estado_publicacion_evento", nullable = false, length = 20)
-    private String estadoPublicacionEvento; // enum: BORRADOR, PUBLICADO, CANCELADO
+    private String estadoPublicacionEvento;
 
-    @ManyToOne
+    @Column(name = "imagen_url", columnDefinition = "TEXT")
+    private String imagenUrl;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "categoria_id")
+    private Categoria categoria;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizador_id_evento", nullable = false)
     private Usuario organizador;
 
-    public Evento() {
+    @JsonIgnore
+    @Builder.Default
+    @OneToMany(mappedBy = "evento", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Entrada> entradas = new ArrayList<>();
+
+    public int getCuposDisponibleEvento() {
+        return cuposDisponibles;
     }
 
-    public Long getIdEvento() {
-        return idEvento;
-    }
-
-    public void setIdEvento(Long idEvento) {
-        this.idEvento = idEvento;
-    }
-
-    public String getTituloEvento() {
-        return tituloEvento;
-    }
-
-    public void setTituloEvento(String tituloEvento) {
-        this.tituloEvento = tituloEvento;
-    }
-
-    public String getDescripcionEvento() {
-        return descripcionEvento;
-    }
-
-    public void setDescripcionEvento(String descripcionEvento) {
-        this.descripcionEvento = descripcionEvento;
-    }
-
-    public String getUbicacionEvento() {
-        return ubicacionEvento;
-    }
-
-    public void setUbicacionEvento(String ubicacionEvento) {
-        this.ubicacionEvento = ubicacionEvento;
-    }
-
-    public String getDetallesUbicacionEvento() {
-        return detallesUbicacionEvento;
-    }
-
-    public void setDetallesUbicacionEvento(String detallesUbicacionEvento) {
-        this.detallesUbicacionEvento = detallesUbicacionEvento;
-    }
-
-    public LocalDate getFechaEvento() {
-        return fechaEvento;
-    }
-
-    public void setFechaEvento(LocalDate fechaEvento) {
-        this.fechaEvento = fechaEvento;
-    }
-
-    public LocalTime getHoraEvento() {
-        return horaEvento;
-    }
-
-    public void setHoraEvento(LocalTime horaEvento) {
-        this.horaEvento = horaEvento;
-    }
-
-    public BigDecimal getPrecioEntradaEvento() {
-        return precioEntradaEvento;
-    }
-
-    public void setPrecioEntradaEvento(BigDecimal precioEntradaEvento) {
-        this.precioEntradaEvento = precioEntradaEvento;
-    }
-
-    public Integer getCuposTotalesEvento() {
-        return cuposTotalesEvento;
-    }
-
-    public void setCuposTotalesEvento(Integer cuposTotalesEvento) {
-        this.cuposTotalesEvento = cuposTotalesEvento;
-    }
-
-    public Integer getCuposDisponibleEvento() {
-        return cuposDisponibleEvento;
-    }
-
-    public void setCuposDisponibleEvento(Integer cuposDisponibleEvento) {
-        this.cuposDisponibleEvento = cuposDisponibleEvento;
-    }
-
-    public String getEstadoPublicacionEvento() {
-        return estadoPublicacionEvento;
-    }
-
-    public void setEstadoPublicacionEvento(String estadoPublicacionEvento) {
-        this.estadoPublicacionEvento = estadoPublicacionEvento;
-    }
-
-    public Usuario getOrganizador() {
-        return organizador;
-    }
-
-    public void setOrganizador(Usuario organizador) {
-        this.organizador = organizador;
+    public void setCuposDisponibleEvento(int cuposDisponibles) {
+        this.cuposDisponibles = cuposDisponibles;
     }
 }

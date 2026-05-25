@@ -1,18 +1,19 @@
 package com.demo.butaca.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import jakarta.persistence.Table;
-
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
 @Table(name = "entradas")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Entrada {
 
     @Id
@@ -24,56 +25,30 @@ public class Entrada {
     private UUID codigoUnicoEntrada;
 
     @Column(name = "estado_entrada", nullable = false, length = 20)
-    private String estadoEntrada; // enum: CONFIRMADA, USADA, ANULADA
+    private String estadoEntrada;
 
-    @ManyToOne
+    @Column(name = "fecha_validacion")
+    private LocalDateTime fechaValidacion;
+
+    @Column(name = "fecha_compra")
+    private LocalDateTime fechaCompra;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "evento_id", nullable = false)
     private Evento evento;
 
-    @ManyToOne
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "usuario_id")
     private Usuario usuario;
 
-    public Entrada() {
-    }
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "compra_id")
+    private Compra compra;
 
-    public Long getIdEntrada() {
-        return idEntrada;
-    }
-
-    public void setIdEntrada(Long idEntrada) {
-        this.idEntrada = idEntrada;
-    }
-
-    public UUID getCodigoUnicoEntrada() {
-        return codigoUnicoEntrada;
-    }
-
-    public void setCodigoUnicoEntrada(UUID codigoUnicoEntrada) {
-        this.codigoUnicoEntrada = codigoUnicoEntrada;
-    }
-
-    public String getEstadoEntrada() {
-        return estadoEntrada;
-    }
-
-    public void setEstadoEntrada(String estadoEntrada) {
-        this.estadoEntrada = estadoEntrada;
-    }
-
-    public Evento getEvento() {
-        return evento;
-    }
-
-    public void setEvento(Evento evento) {
-        this.evento = evento;
-    }
-
-    public Usuario getUsuario() {
-        return usuario;
-    }
-
-    public void setUsuario(Usuario usuario) {
-        this.usuario = usuario;
+    @PrePersist
+    public void generarCodigoUnico() {
+        if (this.codigoUnicoEntrada == null) {
+            this.codigoUnicoEntrada = UUID.randomUUID();
+        }
     }
 }

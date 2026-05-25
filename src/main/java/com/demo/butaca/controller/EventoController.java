@@ -13,10 +13,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/eventos")
@@ -37,8 +39,8 @@ public class EventoController {
     }
 
     @GetMapping
-    public List<EventoResponseDTO> listarPublicados() {
-        return eventoService.listarEventosPublicados();
+    public List<EventoResponseDTO> listarPublicados(@RequestParam(required = false) Long categoriaId) {
+        return eventoService.listarEventosPublicados(categoriaId);
     }
 
     @GetMapping("/{id}")
@@ -56,6 +58,11 @@ public class EventoController {
         return eventoService.listarEventosPorOrganizador(id);
     }
 
+    @GetMapping("/categoria/{id}")
+    public List<EventoResponseDTO> listarPorCategoria(@PathVariable Long id) {
+        return eventoService.listarEventosPorCategoria(id);
+    }
+
     @GetMapping("/{id}/entradas")
     public List<EntradaResponseDTO> listarEntradasPorEvento(@PathVariable Long id) {
         return entradaService.listarEntradasPorEvento(id);
@@ -64,5 +71,17 @@ public class EventoController {
     @PutMapping("/{id}/publicar")
     public void publicarEvento(@PathVariable Long id) {
         eventoService.publicarEvento(id);
+    }
+
+    @PutMapping("/{id}/cupos")
+    public EventoResponseDTO actualizarCupos(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
+        Integer cupos = body.get("cupos_disponibles");
+        if (cupos == null) {
+            cupos = body.get("cuposDisponibleEvento");
+        }
+        if (cupos == null) {
+            throw new IllegalArgumentException("cupos_disponibles es requerido");
+        }
+        return eventoService.actualizarCuposDisponibles(id, cupos);
     }
 }

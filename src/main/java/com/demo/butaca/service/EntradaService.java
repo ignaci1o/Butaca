@@ -6,9 +6,9 @@ import com.demo.butaca.repository.EntradaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class EntradaService {
@@ -36,28 +36,35 @@ public class EntradaService {
         }
 
         entrada.setEstadoEntrada("USADA");
+        entrada.setFechaValidacion(LocalDateTime.now());
         return toDTO(entradaRepository.save(entrada));
     }
 
     @Transactional(readOnly = true)
     public List<EntradaResponseDTO> listarEntradasPorUsuario(Long idUsuario) {
-        return entradaRepository.findByUsuarioIdUsuario(idUsuario)
-                .stream().map(this::toDTO).collect(Collectors.toList());
+        return entradaRepository.findByUsuarioIdUsuario(idUsuario).stream().map(this::toDTO).toList();
     }
 
     @Transactional(readOnly = true)
     public List<EntradaResponseDTO> listarEntradasPorEvento(Long idEvento) {
-        return entradaRepository.findByEventoIdEvento(idEvento)
-                .stream().map(this::toDTO).collect(Collectors.toList());
+        return entradaRepository.findByEventoIdEvento(idEvento).stream().map(this::toDTO).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<EntradaResponseDTO> listarEntradasPorCompra(Long idCompra) {
+        return entradaRepository.findByCompraId(idCompra).stream().map(this::toDTO).toList();
     }
 
     public EntradaResponseDTO toDTO(Entrada entrada) {
-        EntradaResponseDTO dto = new EntradaResponseDTO();
-        dto.setIdEntrada(entrada.getIdEntrada());
-        dto.setCodigoUnicoEntrada(entrada.getCodigoUnicoEntrada());
-        dto.setEstadoEntrada(entrada.getEstadoEntrada());
-        dto.setEventoId(entrada.getEvento().getIdEvento());
-        dto.setUsuarioId(entrada.getUsuario().getIdUsuario());
-        return dto;
+        return EntradaResponseDTO.builder()
+                .idEntrada(entrada.getIdEntrada())
+                .codigoUnicoEntrada(entrada.getCodigoUnicoEntrada())
+                .estadoEntrada(entrada.getEstadoEntrada())
+                .fechaCompra(entrada.getFechaCompra())
+                .fechaValidacion(entrada.getFechaValidacion())
+                .eventoId(entrada.getEvento() == null ? null : entrada.getEvento().getIdEvento())
+                .usuarioId(entrada.getUsuario() == null ? null : entrada.getUsuario().getIdUsuario())
+                .compraId(entrada.getCompra() == null ? null : entrada.getCompra().getId())
+                .build();
     }
 }

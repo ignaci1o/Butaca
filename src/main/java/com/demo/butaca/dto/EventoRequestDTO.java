@@ -3,12 +3,14 @@ package com.demo.butaca.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import lombok.Data;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
+@Data
 public class EventoRequestDTO {
-
     @NotBlank
     @JsonProperty("titulo_evento")
     private String tituloEvento;
@@ -39,26 +41,16 @@ public class EventoRequestDTO {
     @JsonProperty("cupos_totales_evento")
     private Integer cuposTotalesEvento;
 
+    @JsonProperty("estado_publicacion_evento")
+    private String estadoPublicacionEvento;
+
+    @JsonProperty("imagen_url")
+    private String imagenUrl;
+
+    @JsonProperty("categoria_id")
+    private Long categoriaId;
+
     @NotNull
     @JsonProperty("organizador_id_evento")
     private Long organizadorIdEvento;
-
-    public String getTituloEvento() { return tituloEvento; }
-    public void setTituloEvento(String tituloEvento) { this.tituloEvento = tituloEvento; }
-    public String getDescripcionEvento() { return descripcionEvento; }
-    public void setDescripcionEvento(String descripcionEvento) { this.descripcionEvento = descripcionEvento; }
-    public String getUbicacionEvento() { return ubicacionEvento; }
-    public void setUbicacionEvento(String ubicacionEvento) { this.ubicacionEvento = ubicacionEvento; }
-    public String getDetallesUbicacionEvento() { return detallesUbicacionEvento; }
-    public void setDetallesUbicacionEvento(String detallesUbicacionEvento) { this.detallesUbicacionEvento = detallesUbicacionEvento; }
-    public LocalDate getFechaEvento() { return fechaEvento; }
-    public void setFechaEvento(LocalDate fechaEvento) { this.fechaEvento = fechaEvento; }
-    public LocalTime getHoraEvento() { return horaEvento; }
-    public void setHoraEvento(LocalTime horaEvento) { this.horaEvento = horaEvento; }
-    public BigDecimal getPrecioEntradaEvento() { return precioEntradaEvento; }
-    public void setPrecioEntradaEvento(BigDecimal precioEntradaEvento) { this.precioEntradaEvento = precioEntradaEvento; }
-    public Integer getCuposTotalesEvento() { return cuposTotalesEvento; }
-    public void setCuposTotalesEvento(Integer cuposTotalesEvento) { this.cuposTotalesEvento = cuposTotalesEvento; }
-    public Long getOrganizadorIdEvento() { return organizadorIdEvento; }
-    public void setOrganizadorIdEvento(Long organizadorIdEvento) { this.organizadorIdEvento = organizadorIdEvento; }
 }

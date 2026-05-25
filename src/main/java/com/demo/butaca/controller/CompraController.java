@@ -1,9 +1,8 @@
 package com.demo.butaca.controller;
 
 import com.demo.butaca.dto.CompraRequestDTO;
-import com.demo.butaca.dto.EntradaResponseDTO;
+import com.demo.butaca.dto.CompraResponseDTO;
 import com.demo.butaca.service.CompraService;
-import com.demo.butaca.service.EntradaService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,21 +20,24 @@ import java.util.List;
 public class CompraController {
 
     private final CompraService compraService;
-    private final EntradaService entradaService;
 
-    public CompraController(CompraService compraService, EntradaService entradaService) {
+    public CompraController(CompraService compraService) {
         this.compraService = compraService;
-        this.entradaService = entradaService;
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public EntradaResponseDTO comprarEntrada(@Valid @RequestBody CompraRequestDTO request) {
+    public CompraResponseDTO comprarEntrada(@Valid @RequestBody CompraRequestDTO request) {
         return compraService.comprarEntrada(request);
     }
 
+    @GetMapping("/{id}")
+    public CompraResponseDTO obtenerCompra(@PathVariable Long id) {
+        return compraService.obtenerCompra(id);
+    }
+
     @GetMapping("/usuario/{id}")
-    public List<EntradaResponseDTO> listarComprasUsuario(@PathVariable Long id) {
-        return entradaService.listarEntradasPorUsuario(id);
+    public List<CompraResponseDTO> listarComprasUsuario(@PathVariable Long id) {
+        return compraService.listarComprasUsuario(id);
     }
 }
