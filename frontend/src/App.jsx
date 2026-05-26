@@ -8,7 +8,7 @@ import CheckoutPage from "./pages/CheckoutPage";
 import ConfirmationPage from "./pages/ConfirmationPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
-import OrganizerDashboard from "./pages/OrganizerDashboard";
+import DashboardPage from "./pages/DashboardPage";
 import { clearAuthenticatedUser, getAuthenticatedUser, saveAuthenticatedUser } from "./utils/authStorage";
 
 function App() {
@@ -30,11 +30,11 @@ function App() {
         <Route path="/" element={<HomePage currentUser={currentUser} />} />
         <Route path="/buscar" element={<SearchPage />} />
         <Route path="/eventos/:eventId" element={<EventDetailPage />} />
-        <Route path="/checkout" element={<CheckoutPage />} />
+        <Route path="/checkout" element={<CheckoutPage currentUser={currentUser} />} />
         <Route path="/confirmacion" element={<ConfirmationPage />} />
         <Route path="/login" element={<LoginPage currentUser={currentUser} onLogin={handleLogin} />} />
         <Route path="/registro" element={<RegisterPage />} />
-        <Route path="/dashboard" element={<OrganizerDashboard currentUser={currentUser} />} />
+        <Route path="/dashboard" element={<DashboardPage currentUser={currentUser} />} />
       </Routes>
     </AppShell>
   );

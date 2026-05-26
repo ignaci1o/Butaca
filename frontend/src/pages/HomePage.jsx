@@ -3,15 +3,19 @@ import HeroSection from "../components/home/HeroSection";
 import CategoryTabs from "../components/home/CategoryTabs";
 import EventGrid from "../components/events/EventGrid";
 import SectionTitle from "../components/ui/SectionTitle";
-import { categoryOptions } from "../data/mockEvents";
-import { getAllEvents } from "../services/eventService";
+import { categoryOptions as fallbackCategoryOptions } from "../data/mockEvents";
+import { getAllEvents, getCategories } from "../services/eventService";
 
 function HomePage({ currentUser }) {
   const [events, setEvents] = useState([]);
+  const [categories, setCategories] = useState(fallbackCategoryOptions);
   const [activeCategory, setActiveCategory] = useState("Todos");
 
   useEffect(() => {
     getAllEvents().then(setEvents).catch(() => setEvents([]));
+    getCategories()
+      .then((items) => setCategories(["Todos", ...items.map((category) => category.nombre)]))
+      .catch(() => setCategories(fallbackCategoryOptions));
   }, []);
 
   const featuredEvent = events.find((event) => event.destacados);
@@ -33,10 +37,10 @@ function HomePage({ currentUser }) {
         <SectionTitle
           eyebrow="Explora"
           title="Eventos listos para venderse"
-          text="Esta grilla te sirve como base para conectar luego el listado real desde Spring Boot."
+          text="Catalogo actualizado con eventos publicados y cupos disponibles."
         />
         <CategoryTabs
-          categories={categoryOptions}
+          categories={categories}
           activeCategory={activeCategory}
           onChange={setActiveCategory}
         />
@@ -60,7 +64,7 @@ function HomePage({ currentUser }) {
         <SectionTitle
           eyebrow="Cerca tuyo"
           title="Populares ahora"
-          text="Bloque reutilizable para ranking, tendencias o recomendaciones futuras."
+          text="Eventos con disponibilidad activa para comprar entradas."
         />
         <EventGrid events={popularEvents} />
       </section>

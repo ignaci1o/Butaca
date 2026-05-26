@@ -1,18 +1,18 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
 import OrderSummary from "../components/checkout/OrderSummary";
 import { createOrder } from "../services/orderService";
 import { clearSelectedOrder, getSelectedOrder, saveSelectedOrder } from "../utils/storage";
 
-function CheckoutPage() {
+function CheckoutPage({ currentUser }) {
   const navigate = useNavigate();
   const order = getSelectedOrder();
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    nombre: "",
-    email: "",
+    nombre: currentUser ? `${currentUser.nombre} ${currentUser.apellido || ""}`.trim() : "",
+    email: currentUser?.email || "",
     documento: "",
     tarjeta: "",
     vencimiento: "",
@@ -21,6 +21,17 @@ function CheckoutPage() {
 
   if (!order) {
     return <section className="container page-block">No hay una compra seleccionada todavia.</section>;
+  }
+
+  if (!currentUser) {
+    return (
+      <section className="container page-block">
+        <div className="empty-state">
+          <p>Necesitas iniciar sesion para confirmar la compra.</p>
+          <Link to="/login" className="pill-link">Ingresar</Link>
+        </div>
+      </section>
+    );
   }
 
   function handleChange(event) {
@@ -48,6 +59,7 @@ function CheckoutPage() {
           documento: formData.documento
         },
         eventoId: order.event.id,
+        usuarioId: currentUser.id,
         tipoEntrada: order.ticketType.id,
         cantidad: order.quantity,
         total: order.total
@@ -76,10 +88,7 @@ function CheckoutPage() {
         <form className="checkout-form" onSubmit={handleSubmit}>
           <p className="section-eyebrow">Checkout</p>
           <h1>{step === 1 ? "Tus datos" : "Pago"}</h1>
-          <p>
-            Flujo simple en dos pasos. Mas adelante podes separarlo en componentes o conectarlo con
-            validaciones reales.
-          </p>
+          <p>Confirma los datos de la compra antes de emitir tus entradas.</p>
 
           {step === 1 ? (
             <div className="form-grid">

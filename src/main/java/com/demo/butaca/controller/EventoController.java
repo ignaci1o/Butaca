@@ -73,6 +73,11 @@ public class EventoController {
         eventoService.publicarEvento(id);
     }
 
+    @PutMapping("/{id}/cancelar")
+    public void cancelarEvento(@PathVariable Long id) {
+        eventoService.cancelarEvento(id);
+    }
+
     @PutMapping("/{id}/cupos")
     public EventoResponseDTO actualizarCupos(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
         Integer cupos = body.get("cupos_disponibles");

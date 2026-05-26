@@ -63,9 +63,10 @@ public class AuthService {
 
     private String normalizarRol(String rolUsuario) {
         if (rolUsuario == null || rolUsuario.isBlank()) {
-            return "CLIENT";
+            return "CLIENTE";
         }
-        return rolUsuario.trim().toUpperCase();
+        String normalizado = rolUsuario.trim().toUpperCase();
+        return "CLIENT".equals(normalizado) ? "CLIENTE" : normalizado;
     }
 
     private AuthResponse toResponse(Usuario usuario, String mensaje) {

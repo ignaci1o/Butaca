@@ -17,8 +17,7 @@ function ConfirmationPage() {
         <p className="section-eyebrow">Compra confirmada</p>
         <h1>Tu pedido ya esta registrado en Butaca.</h1>
         <p>
-          Este bloque puede conectarse luego con la respuesta real de Spring Boot y mostrar codigo,
-          QR o detalle de entradas emitidas.
+          Conserva el codigo unico de cada entrada para la validacion de acceso.
         </p>
 
         <div className="confirmation-code">{confirmation.codigoReserva}</div>
@@ -36,6 +35,12 @@ function ConfirmationPage() {
             <span>Total</span>
             <strong>{formatPrice(order.total)}</strong>
           </div>
+        </div>
+
+        <div className="ticket-code-list">
+          {(confirmation.entradas || []).map((entrada) => (
+            <span key={entrada.id_entrada}>{entrada.codigo_unico_entrada}</span>
+          ))}
         </div>
 
         <div className="hero-actions">

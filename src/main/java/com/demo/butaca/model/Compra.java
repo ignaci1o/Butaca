@@ -14,6 +14,7 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -21,15 +22,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "purchases")
+@Table(name = "compras")
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Compra {
+public class Compra extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id_compra")
+    @EqualsAndHashCode.Include
     private Long id;
 
     @Column(name = "fecha_compra")
@@ -42,8 +46,8 @@ public class Compra {
     private BigDecimal total;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id")
-    private Usuario usuario;
+    @JoinColumn(name = "cliente_id", nullable = false)
+    private Usuario cliente;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "evento_id")

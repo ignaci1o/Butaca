@@ -8,25 +8,27 @@ import jakarta.persistence.Id;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "notificaciones")
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Notificacion {
+public class Notificacion extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_notificacion")
+    @EqualsAndHashCode.Include
     private Long idNotificacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -52,11 +54,4 @@ public class Notificacion {
 
     @Column(name = "fecha_envio")
     private LocalDateTime fechaEnvio;
-
-    @PrePersist
-    public void prePersist() {
-        if (fechaCreacion == null) {
-            fechaCreacion = LocalDateTime.now();
-        }
-    }
 }

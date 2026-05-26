@@ -1,7 +1,6 @@
 package com.demo.butaca.model;
 
 import jakarta.persistence.Column;
-import jakarta.persistence.CascadeType;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -11,25 +10,27 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
-import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "usuarios")
+@Table(name = "usuarios", uniqueConstraints = @UniqueConstraint(name = "uk_usuarios_email", columnNames = "email_usuario"))
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Usuario {
+public class Usuario extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_usuario")
+    @EqualsAndHashCode.Include
     private Long idUsuario;
 
     @Column(name = "nombre_usuario", nullable = false, length = 100)
@@ -44,8 +45,8 @@ public class Usuario {
     @Column(name = "password_usuario", nullable = false, length = 255)
     private String passwordUsuario;
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
-    @JoinColumn(name = "rol_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "rol_id", nullable = false)
     private Rol rol;
 
     @Column(name = "telefono", length = 20)
@@ -56,24 +57,12 @@ public class Usuario {
     @Enumerated(EnumType.STRING)
     private EstadoUsuario estadoUsuario = EstadoUsuario.ACTIVO;
 
-    @Column(name = "fecha_registro")
-    private LocalDateTime fechaRegistro;
-
-    @PrePersist
-    public void prePersist() {
-        if (fechaRegistro == null) {
-            fechaRegistro = LocalDateTime.now();
-        }
-        if (estadoUsuario == null) {
-            estadoUsuario = EstadoUsuario.ACTIVO;
-        }
-    }
-
     public RolUsuario getRolUsuario() {
         if (rol == null || rol.getNombre() == null) {
             return null;
         }
-        return RolUsuario.valueOf(rol.getNombre());
+        String nombre = rol.getNombre();
+        return RolUsuario.valueOf("CLIENT".equals(nombre) ? "CLIENTE" : nombre);
     }
 
     public void setRolUsuario(RolUsuario rolUsuario) {

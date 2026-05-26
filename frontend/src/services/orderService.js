@@ -1,23 +1,30 @@
 import { request } from "./apiClient";
 
-// Si el frontend tiene un objeto currentUser, asumo que mandaremos usuario_id desde orderData.
-// Adaptamos orderData a lo que espera CompraRequestDTO
-
 export const useMockOrders = false;
+
+const AUTH_STORAGE_KEY = "butaca-auth-user";
+
+function getStoredUser() {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  return raw ? JSON.parse(raw) : null;
+}
 
 export async function createOrder(orderData) {
   if (useMockOrders) {
     return {
       codigoReserva: `BTC-${Math.random().toString(36).slice(2, 8).toUpperCase()}`,
       total: orderData.total,
-      comprador: orderData.comprador
+      comprador: orderData.comprador,
+      entradas: []
     };
   }
 
-  // Se asume que orderData provee eventoId y la app de React envia el usuario_id del estado global
+  const storedUser = getStoredUser();
+  const usuarioId = orderData.usuarioId || storedUser?.id_usuario || storedUser?.id;
   const payload = {
-    evento_id: orderData.eventoId || orderData.items[0]?.id,
-    usuario_id: orderData.usuarioId || JSON.parse(localStorage.getItem("usuario"))?.id_usuario
+    evento_id: orderData.eventoId,
+    usuario_id: usuarioId,
+    cantidad: orderData.cantidad || 1
   };
 
   const response = await request("/compras", {
@@ -25,10 +32,29 @@ export async function createOrder(orderData) {
     body: JSON.stringify(payload)
   });
 
-  // La API devuelve EntradaResponseDTO con codigo_unico_entrada
+  const entradas = response.entradas || [];
   return {
-    codigoReserva: response.codigo_unico_entrada,
-    total: orderData.total,
-    comprador: orderData.comprador
+    idCompra: response.id,
+    codigoReserva: entradas[0]?.codigo_unico_entrada || `COMPRA-${response.id}`,
+    total: Number(response.total ?? orderData.total),
+    comprador: orderData.comprador,
+    entradas,
+    raw: response
   };
+}
+
+export async function getUserOrders(userId) {
+  return request(`/compras/usuario/${userId}`);
+}
+
+export async function getOrganizerOrders(organizerId) {
+  return request(`/compras/organizador/${organizerId}`);
+}
+
+export async function getUserNotifications(userId) {
+  return request(`/notificaciones/usuario/${userId}`);
+}
+
+export async function markNotificationRead(notificationId) {
+  return request(`/notificaciones/${notificationId}/leida`, { method: "PUT" });
 }

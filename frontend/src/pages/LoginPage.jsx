@@ -35,7 +35,7 @@ function LoginPage({ currentUser, onLogin }) {
     try {
       const user = await loginUser(formData);
       onLogin(user);
-      navigate("/");
+      navigate(user.rol === "CLIENTE" ? "/" : "/dashboard");
     } catch (submissionError) {
       setError(submissionError.message || "No se pudo iniciar sesion");
     } finally {
@@ -50,8 +50,7 @@ function LoginPage({ currentUser, onLogin }) {
           <p className="section-eyebrow">Acceso a cuentas</p>
           <h1>Ingresa a Butaca con el perfil correcto para probar cada flujo.</h1>
           <p className="section-text">
-            Esta pantalla consume el backend de Spring Boot y deja visible el tipo de cuenta en la
-            barra superior para validar rapidamente la experiencia.
+            Accede al catalogo, a tus entradas o a la gestion de eventos segun el rol de tu cuenta.
           </p>
 
           <div className="auth-role-list">
@@ -77,8 +76,8 @@ function LoginPage({ currentUser, onLogin }) {
             </div>
           ) : (
             <div className="auth-helper">
-              <strong>Modo backend activo</strong>
-              <span>Usa un usuario registrado desde `POST /api/auth/register`.</span>
+              <strong>Cuentas demo</strong>
+              <span>admin@butaca.com, org@butaca.com, cliente@butaca.com.</span>
             </div>
           )}
         </div>
@@ -87,7 +86,7 @@ function LoginPage({ currentUser, onLogin }) {
           <p className="section-eyebrow">Inicio de sesion</p>
           <h2>Cuenta Butaca</h2>
           <p className="section-text">
-            El login de esta etapa valida email y password y recupera el rol de la cuenta.
+            Usa tu correo y contrasena para continuar.
           </p>
 
           <div className="form-grid">

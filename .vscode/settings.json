@@ -1,0 +1,10 @@
+{
+  "java.compile.nullAnalysis.mode": "automatic",
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "editor.formatOnSave": true,
+  "files.exclude": {
+    "**/target": true,
+    "**/node_modules": true,
+    "**/frontend/dist": true
+  }
+}

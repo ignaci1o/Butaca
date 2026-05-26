@@ -25,11 +25,9 @@ function Navbar({ currentUser, onLogout }) {
         <div className="navbar-actions">
           {currentUser ? (
             <>
-              {(currentUser.rol === "ORGANIZADOR" || currentUser.rol === "ADMIN") && (
-                <Link to="/dashboard" className="text-link">
-                  Mi Panel
-                </Link>
-              )}
+              <Link to="/dashboard" className="text-link">
+                Mi Panel
+              </Link>
               <div className="account-chip">
                 <div
                   style={{

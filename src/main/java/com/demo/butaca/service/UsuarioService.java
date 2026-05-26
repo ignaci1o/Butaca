@@ -95,7 +95,11 @@ public class UsuarioService {
     }
 
     private Rol buscarRol(String nombre) {
-        return rolRepository.findByNombre(nombre.trim().toUpperCase())
+        String normalizado = nombre.trim().toUpperCase();
+        if ("CLIENT".equals(normalizado)) {
+            normalizado = "CLIENTE";
+        }
+        return rolRepository.findByNombre(normalizado)
                 .orElseThrow(() -> new IllegalArgumentException("Rol no encontrado"));
     }
 
@@ -107,7 +111,9 @@ public class UsuarioService {
                 .emailUsuario(usuario.getEmailUsuario())
                 .telefono(usuario.getTelefono())
                 .estadoUsuario(usuario.getEstadoUsuario())
-                .fechaRegistro(usuario.getFechaRegistro())
+                .fechaRegistro(usuario.getCreatedAt())
+                .createdAt(usuario.getCreatedAt())
+                .updatedAt(usuario.getUpdatedAt())
                 .rolId(usuario.getRol() == null ? null : usuario.getRol().getId())
                 .rolUsuario(usuario.getRol() == null ? null : usuario.getRol().getNombre())
                 .build();

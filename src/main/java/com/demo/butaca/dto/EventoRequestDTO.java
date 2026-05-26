@@ -18,12 +18,22 @@ public class EventoRequestDTO {
     @JsonProperty("descripcion_evento")
     private String descripcionEvento;
 
-    @NotBlank
     @JsonProperty("ubicacion_evento")
     private String ubicacionEvento;
 
     @JsonProperty("detalles_ubicacion_evento")
     private String detallesUbicacionEvento;
+
+    @JsonProperty("ubicacion_id")
+    private Long ubicacionId;
+
+    @JsonProperty("nombre_lugar")
+    private String nombreLugar;
+
+    private String direccion;
+
+    @JsonProperty("capacidad_maxima")
+    private Integer capacidadMaxima;
 
     @NotNull
     @JsonProperty("fecha_evento")

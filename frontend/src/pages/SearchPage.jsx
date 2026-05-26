@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import EventGrid from "../components/events/EventGrid";
 import SectionTitle from "../components/ui/SectionTitle";
-import { categoryOptions } from "../data/mockEvents";
-import { getAllEvents } from "../services/eventService";
+import { categoryOptions as fallbackCategoryOptions } from "../data/mockEvents";
+import { getAllEvents, getCategories } from "../services/eventService";
 
 function SearchPage() {
   const [events, setEvents] = useState([]);
+  const [categories, setCategories] = useState(fallbackCategoryOptions);
   const [searchText, setSearchText] = useState("");
   const [category, setCategory] = useState("Todos");
   const [maxPrice, setMaxPrice] = useState(300);
@@ -13,6 +14,9 @@ function SearchPage() {
 
   useEffect(() => {
     getAllEvents().then(setEvents).catch(() => setEvents([]));
+    getCategories()
+      .then((items) => setCategories(["Todos", ...items.map((item) => item.nombre)]))
+      .catch(() => setCategories(fallbackCategoryOptions));
   }, []);
 
   const filteredEvents = useMemo(() => {
@@ -49,8 +53,8 @@ function SearchPage() {
     <section className="container page-block">
       <SectionTitle
         eyebrow="Busqueda"
-        title="Encontra eventos sin depender todavia del backend"
-        text="Cuando conectes la API, esta pagina puede pasar a consumir filtros reales o mantenerse del lado del cliente."
+        title="Encontra eventos publicados"
+        text="Filtra el catalogo por nombre, ciudad, categoria y precio."
       />
 
       <div className="search-layout">
@@ -68,7 +72,7 @@ function SearchPage() {
           <label>
             Categoria
             <select value={category} onChange={(event) => setCategory(event.target.value)}>
-              {categoryOptions.map((option) => (
+              {categories.map((option) => (
                 <option key={option} value={option}>
                   {option}
                 </option>

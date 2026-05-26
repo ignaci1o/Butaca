@@ -40,4 +40,9 @@ public class CompraController {
     public List<CompraResponseDTO> listarComprasUsuario(@PathVariable Long id) {
         return compraService.listarComprasUsuario(id);
     }
+
+    @GetMapping("/organizador/{id}")
+    public List<CompraResponseDTO> listarComprasOrganizador(@PathVariable Long id) {
+        return compraService.listarComprasOrganizador(id);
+    }
 }

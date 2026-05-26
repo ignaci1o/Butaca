@@ -45,4 +45,10 @@ public class UsuarioDTO {
 
     @JsonProperty("fecha_registro")
     private LocalDateTime fechaRegistro;
+
+    @JsonProperty("created_at")
+    private LocalDateTime createdAt;
+
+    @JsonProperty("updated_at")
+    private LocalDateTime updatedAt;
 }

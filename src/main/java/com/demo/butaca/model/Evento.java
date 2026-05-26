@@ -5,6 +5,7 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -15,14 +16,16 @@ import java.util.List;
 @Entity
 @Table(name = "eventos")
 @Data
+@EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Evento {
+public class Evento extends AuditableEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id_evento")
+    @EqualsAndHashCode.Include
     private Long idEvento;
 
     @Column(name = "titulo_evento", nullable = false, length = 200)
@@ -30,12 +33,6 @@ public class Evento {
 
     @Column(name = "descripcion_evento", columnDefinition = "TEXT")
     private String descripcionEvento;
-
-    @Column(name = "ubicacion_evento", nullable = false, length = 300)
-    private String ubicacionEvento;
-
-    @Column(name = "detalles_ubicacion_evento", length = 500)
-    private String detallesUbicacionEvento;
 
     @Column(name = "fecha_evento", nullable = false)
     private LocalDate fechaEvento;
@@ -50,10 +47,17 @@ public class Evento {
     private Integer cuposTotalesEvento;
 
     @Column(name = "cupos_disponibles_evento", nullable = false)
-    private int cuposDisponibles;
+    private Integer cuposDisponibleEvento;
 
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
     @Column(name = "estado_publicacion_evento", nullable = false, length = 20)
-    private String estadoPublicacionEvento;
+    private EstadoEvento estadoPublicacionEvento = EstadoEvento.BORRADOR;
+
+    @Version
+    @Builder.Default
+    @Column(name = "version", nullable = false)
+    private Integer version = 0;
 
     @Column(name = "imagen_url", columnDefinition = "TEXT")
     private String imagenUrl;
@@ -63,6 +67,10 @@ public class Evento {
     private Categoria categoria;
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "ubicacion_id", nullable = false)
+    private Ubicacion ubicacion;
+
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "organizador_id_evento", nullable = false)
     private Usuario organizador;
 
@@ -70,12 +78,4 @@ public class Evento {
     @Builder.Default
     @OneToMany(mappedBy = "evento", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Entrada> entradas = new ArrayList<>();
-
-    public int getCuposDisponibleEvento() {
-        return cuposDisponibles;
-    }
-
-    public void setCuposDisponibleEvento(int cuposDisponibles) {
-        this.cuposDisponibles = cuposDisponibles;
-    }
 }

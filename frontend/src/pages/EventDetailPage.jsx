@@ -11,7 +11,7 @@ function EventDetailPage() {
   const navigate = useNavigate();
   const [event, setEvent] = useState(null);
   const [selectedTicketId, setSelectedTicketId] = useState("");
-  const [quantity, setQuantity] = useState(2);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     getEventById(eventId).then((result) => {
@@ -33,13 +33,14 @@ function EventDetailPage() {
       return;
     }
 
-    const subtotal = selectedTicket.precio * quantity;
+    const safeQuantity = Math.min(quantity, event.disponibilidad);
+    const subtotal = selectedTicket.precio * safeQuantity;
     const serviceFee = Math.round(subtotal * 0.12);
 
     saveSelectedOrder({
       event,
       ticketType: selectedTicket,
-      quantity,
+      quantity: safeQuantity,
       total: subtotal + serviceFee
     });
 
@@ -89,7 +90,7 @@ function EventDetailPage() {
         <div className="ticket-panel">
           <div className="ticket-selector">
             <h2>Selecciona tus entradas</h2>
-            <p>Bloque ideal para luego cargar sectores reales desde tu backend.</p>
+            <p>{event.disponibilidad} entradas disponibles.</p>
 
             <div className="ticket-options">
               {event.tiposEntrada.map((ticket) => (
@@ -108,15 +109,14 @@ function EventDetailPage() {
             <label className="quantity-field">
               Cantidad
               <select value={quantity} onChange={(event) => setQuantity(Number(event.target.value))}>
-                <option value={1}>1</option>
-                <option value={2}>2</option>
-                <option value={3}>3</option>
-                <option value={4}>4</option>
+                {Array.from({ length: Math.min(event.disponibilidad, 6) }, (_, index) => index + 1).map((value) => (
+                  <option key={value} value={value}>{value}</option>
+                ))}
               </select>
             </label>
 
             <div className="detail-actions">
-              <Button onClick={handleContinue} fullWidth>
+              <Button onClick={handleContinue} fullWidth disabled={event.disponibilidad <= 0}>
                 Continuar al checkout
               </Button>
               <Link to="/buscar" className="text-link">

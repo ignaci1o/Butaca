@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
+import java.math.BigDecimal;
 
 @Data
 @Builder
@@ -23,8 +24,14 @@ public class EntradaResponseDTO {
     @JsonProperty("estado_entrada")
     private String estadoEntrada;
 
+    @JsonProperty("precio_pagado")
+    private BigDecimal precioPagado;
+
     @JsonProperty("fecha_compra")
     private LocalDateTime fechaCompra;
+
+    @JsonProperty("fecha_emision")
+    private LocalDateTime fechaEmision;
 
     @JsonProperty("fecha_validacion")
     private LocalDateTime fechaValidacion;

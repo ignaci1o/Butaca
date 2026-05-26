@@ -9,7 +9,7 @@ import java.util.UUID;
 
 public interface EntradaRepository extends JpaRepository<Entrada, Long> {
     Optional<Entrada> findByCodigoUnicoEntrada(UUID codigoUnicoEntrada);
-    List<Entrada> findByUsuarioIdUsuario(Long idUsuario);
+    List<Entrada> findByClienteIdUsuario(Long idUsuario);
     List<Entrada> findByEventoIdEvento(Long idEvento);
     List<Entrada> findByCompraId(Long compraId);
 }

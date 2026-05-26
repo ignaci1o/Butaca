@@ -29,6 +29,12 @@ public class CompraResponseDTO {
     @JsonProperty("usuario_email")
     private String usuarioEmail;
 
+    @JsonProperty("cliente_id")
+    private Long clienteId;
+
+    @JsonProperty("cliente_email")
+    private String clienteEmail;
+
     @JsonProperty("evento_id")
     private Long eventoId;
 

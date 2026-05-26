@@ -5,8 +5,7 @@ function Footer() {
         <div>
           <h3>Butaca</h3>
           <p>
-            Plataforma de venta de entradas conectada a Spring Boot. 
-            Diseñada para crecer por módulos.
+            Plataforma de venta de entradas para eventos locales.
           </p>
         </div>
         <div>
@@ -19,12 +18,13 @@ function Footer() {
           <h4>Cuenta</h4>
           <a href="/login">Ingresar</a>
           <a href="/registro">Registrarse</a>
-          <a href="/dashboard">Panel organizador</a>
+          <a href="/dashboard">Mi panel</a>
         </div>
         <div>
           <h4>API</h4>
           <p style={{ fontFamily: "monospace", fontSize: "0.78rem", lineHeight: 1.8 }}>
             GET /api/eventos<br />
+            GET /api/admin/ubicaciones<br />
             POST /api/compras<br />
             POST /api/auth/login
           </p>
