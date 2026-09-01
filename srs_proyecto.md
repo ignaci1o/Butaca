@@ -1,0 +1,221 @@
+# **BUTACA - Sistema web de gestión y venta simulada de entradas para eventos**
+
+## **Documento de Especificación de Requerimientos de Software (SRS)**
+
+### **Integrantes (MLSN Group):**
+*   **Mariano Piovesan** (Desarrollador de Interfaz y Pruebas)
+*   **Leandro Gramajo Gargiulo** (Scrum Master)
+*   **Santiago González Fernández** (Product Owner)
+*   **Ignacio Molina Tula** (Desarrollador de Sistema y Base de Datos)
+
+---
+
+### **Versión:** 2.1  
+### **Fecha:** 1 de Septiembre de 2026  
+### **Estándar:** Basado en IEEE 830 y SIA Académico  
+
+---
+
+## **1. Introducción**
+
+### **1.1 Propósito**
+El presente documento tiene como finalidad definir y especificar de forma rigurosa y formal los requerimientos funcionales y no funcionales que rigen el sistema **BUTACA**. Está dirigido al equipo de desarrollo MLSN Group y a los evaluadores académicos del proyecto, proporcionando una visión fiel al estado técnico e implementación real de la plataforma.
+
+### **1.2 Ámbito del Sistema**
+**BUTACA** es un sistema web académico diseñado para centralizar la gestión de eventos, el control de ubicaciones físicas y la venta simulada de entradas. El sistema abarca la publicación de eventos, el control de concurrencia para evitar la sobreventa y la emisión de tickets electrónicos individuales con códigos de validación única.
+
+### **1.3 Definiciones, Acrónimos y Abreviaturas**
+*   **SRS:** Especificación de Requerimientos de Software (IEEE 830).
+*   **MVP:** Producto Mínimo Viable; versión funcional inicial centrada en procesos críticos.
+*   **3FN:** Tercera Forma Normal. Diseño de base de datos relacional libre de dependencias transitivas y anomalías de actualización.
+*   **Cupo:** Capacidad logística del evento. Representa la cantidad de entradas físicas disponibles para la venta.
+*   **Bloqueo Optimista:** Mecanismo de control de concurrencia apoyado en un campo `@Version` que evita que dos transacciones simultáneas compren el mismo cupo.
+*   **Rol:** Nivel de autorización en el sistema (`ADMIN`, `ORGANIZADOR`, `CLIENTE`).
+*   **Estado de Evento:** `BORRADOR`, `PUBLICADO`, `CANCELADO`.
+*   **Estado de Entrada:** `CONFIRMADA`, `USADA`, `ANULADA`.
+*   **UUID:** Identificador Único Universal de 128 bits utilizado para asegurar que cada ticket sea único y no falsificable.
+
+### **1.4 Referencias**
+*   **MLSN Group:** "Entregables del Taller Integrador de Ingeniería Informática".
+*   **Norma IEEE 830-1998:** Prácticas recomendadas para especificaciones de requerimientos de software.
+*   **Documento de Normalización Local:** `docs/normalizacion-base-datos.md`.
+*   **Reglas de Trabajo de Agentes:** `AGENTS.MD`.
+
+### **1.5 Visión General del Documento**
+El documento se divide en cuatro bloques clave: la **Sección 1** introduce el marco conceptual y propósitos del software; la **Sección 2** detalla la perspectiva del producto, actores y restricciones del entorno; la **Sección 3** detalla los requisitos funcionales, no funcionales y despliega formalmente los casos de uso acoplados a la base de datos física; y la **Sección 4** consolida la información del equipo.
+
+---
+
+## **2. Descripción General**
+
+### **2.1 Perspectiva del Producto**
+**BUTACA** se presenta como una solución desacoplada, moderna y sumamente robusta para la democratización de la venta de entradas. Técnicamente, está construida sobre un backend RESTful sólido en **Java 17 con Spring Boot**, y una interfaz de usuario interactiva estructurada en **React y Vite** gestionada mediante **pnpm**. 
+
+El sistema admite dos perfiles de ejecución:
+1.  **Perfil de Producción/Desarrollo Real:** Conectado a una base de datos relacional **PostgreSQL**.
+2.  **Perfil de Demostración (`demo`):** Diseñado para pruebas y clases rápidas con una base de datos local **H2 en memoria** autoejecutable mediante el script `./scripts/demo.sh`, sin dependencias externas complejas.
+
+### **2.2 Funciones del Producto**
+*   **Autenticación Uniforme:** Registro e inicio de sesión seguro con contraseñas encriptadas con **BCrypt** y asignación estricta de roles.
+*   **Gestor de Ubicaciones Físicas:** Registro de establecimientos físicos (`ubicacion`) con control estricto de capacidad máxima para evitar la asignación de eventos que excedan la capacidad logística.
+*   **Ciclo de Vida de Eventos:** Creación de publicaciones en estado `BORRADOR`, publicación abierta al público (`PUBLICADO`) o anulación del espectáculo por fuerza mayor (`CANCELADO`).
+*   **Congelamiento de Precios Históricos:** La compra genera una cabecera mínima (`compra`) y congela el precio pagado real de cada ticket individual (`entrada.precio_pagado_entrada`) en caso de futuros ajustes tarifarios.
+*   **Trazabilidad de Tickets:** Cada emisión, uso o anulación se registra en `historial_estado_entrada`.
+*   **Buzón de Notificaciones Internas:** Envío automático de notificaciones a clientes y organizadores sobre compras exitosas, emisión de tickets o cancelaciones de espectáculos.
+
+### **2.3 Características de los Usuarios (Actores)**
+
+| Tipo de Usuario | Descripción | Objetivo dentro del Sistema |
+| :--- | :--- | :--- |
+| **Administrador (`ADMIN`)** | Usuario con control de auditoría general. | Administrar el catálogo de categorías y ubicaciones, auditar métricas globales de venta del sistema y gestionar la actividad de cuentas de usuarios. |
+| **Organizador (`ORGANIZADOR`)** | Entidad, productora o emprendedor creador de eventos. | Cargar espectáculos en borradores, publicarlos en ubicaciones activas, validar entradas en puerta y supervisar en tiempo real las métricas de ingresos e inventario. |
+| **Cliente (`CLIENTE`)** | Consumidor o espectador final. | Explorar el catálogo de eventos publicados, comprar entradas de forma segura, recibir notificaciones y visualizar su historial de tickets con códigos UUID. |
+
+### **2.4 Restricciones**
+*   **Entorno Local Académico:** El modo demo utiliza H2 en memoria y destruye/recrea los datos en cada reinicio para asegurar un estado semilla limpio (`DataLoader`).
+*   **Pasarela de Pago Simulada:** Por motivos del alcance de este MVP, las transacciones simulan un flujo de pasarela real, deduciendo inventario y consolidando compras inmediatamente sin requerir tokenización de tarjetas de crédito reales.
+*   **Conectividad de Red:** Al ser una arquitectura desacoplada Frontend-Backend, es requisito que el backend exponga la API bajo el puerto `8080` (con fallback de CORS) y el frontend consuma en el puerto `5173`.
+
+### **2.5 Suposiciones y Dependencias**
+*   Se asume que los navegadores clientes soportan estándares modernos de JavaScript (ES6+) y HTML5.
+*   Se asume que el Administrador y Organizador configuran correctamente la capacidad máxima de las ubicaciones físicas para restringir las compras excesivas.
+
+### **2.6 Requerimientos Futuros**
+*   Integración de pasarelas de pago del mundo real (Stripe / MercadoPago).
+*   Reservas temporales de cupo durante un proceso de pago real.
+*   Generación de entradas en formato PDF y envío vía correo electrónico SMTP.
+*   Sistema de selección interactiva de asientos / mapa de butacas físicas mediante Canvas.
+
+---
+
+## **3. Requerimientos Específicos**
+
+### **3.1 Requisitos Funcionales**
+
+*   **RF1 (Gestión de Cuentas y Seguridad):** El sistema debe registrar usuarios asignándoles un rol de base (`rol`). Las contraseñas deben almacenarse encriptadas con algoritmos de hashing seguros (BCrypt). No se permiten correos duplicados (`usuario.email_usuario` con restricción `UNIQUE`).
+*   **RF2 (Ciclo de Vida de Eventos):** Los organizadores pueden cargar eventos en estado `BORRADOR` y luego pasarlos a `PUBLICADO` o `CANCELADO`. Los clientes solo pueden ver eventos que estén en estado `PUBLICADO` y tengan cupos disponibles.
+*   **RF3 (Emisión de Entradas y Códigos Únicos):** Por cada ticket emitido, se debe asociar un identificador único global `UUID` autogenerado (`entrada.codigo_unico_entrada`). Su ciclo de vida (`CONFIRMADA` -> `USADA` o `ANULADA`) se registra en `historial_estado_entrada`.
+*   **RF4 (Control Transaccional de Cupos y Concurrencia):** El sistema debe calcular el cupo disponible contando entradas vigentes dentro de la transacción. Se debe utilizar **Bloqueo Optimista** (`@Version`) en `evento` para impedir la sobreventa cuando varias compras compitan por el último cupo.
+*   **RF5 (Gestión de Ubicaciones y Capacidad Logística):** Todo evento debe ocurrir obligatoriamente en una ubicación física registrada. El cupo total jamás podrá exceder la capacidad máxima de la ubicación (`evento.cupo_total_evento` <= `ubicacion.capacidad_maxima_ubicacion`).
+*   **RF6 (Metricas y Consultas del Sistema):** Los organizadores deben visualizar los ingresos totales y los cupos ocupados/disponibles por evento. El Administrador debe visualizar estadísticas acumuladas a nivel global en la plataforma.
+
+### **3.2 Requerimientos No Funcionales**
+
+*   **RNF1 (Seguridad de Datos y Arquitectura Limpia):** La lógica de validaciones y reglas de negocio debe residir estrictamente en la capa de servicios (`services`) del backend, manteniendo los controladores delgados. Los DTOs de respuesta nunca deben exponer contraseñas ni campos sensibles de seguridad.
+*   **RNF2 (Normalización Relacional de Base de Datos):** La persistencia debe realizarse bajo un esquema relacional normalizado en **Tercera Forma Normal (3FN)** compuesto por 9 tablas en singular: `rol`, `usuario`, `ubicacion`, `categoria`, `evento`, `compra`, `entrada`, `historial_estado_entrada` y `notificacion`.
+*   **RNF3 (Usabilidad y Compatibilidad API):** Las respuestas JSON de la API REST del backend deben usar nomenclatura en formato **snake_case** (mediante anotaciones `@JsonProperty`), mientras que el código de Java debe mantener la convención interna de **camelCase**.
+*   **RNF4 (Facilidad de Instalación y Demo):** La aplicación debe contar con un script automatizado (`./scripts/demo.sh`) capaz de arrancar backend, frontend e inicializar datos semilla de prueba de forma transparente con un solo comando.
+
+---
+
+### **3.3 Casos de Uso**
+
+#### **CU-01: Registro e Inicio de Sesión de Usuario**
+
+> [!NOTE]
+> Este caso de uso asegura el flujo de acceso seguro a la plataforma validando roles.
+
+| Elemento | Descripción |
+| :--- | :--- |
+| **Actor Principal** | Cliente, Organizador o Administrador. |
+| **Objetivo** | Registrarse en la plataforma o autenticarse para obtener un token/sesión que habilite las funciones del rol correspondiente. |
+| **Requisito Asociado**| RF1 - Gestión de Cuentas y Seguridad. |
+| **Precondición** | El usuario debe contar con un correo válido no registrado previamente si es un flujo de registro. |
+| **Flujo Principal** | 1. El usuario accede al formulario (Registro o Login).<br>2. **Registro:** El usuario ingresa nombre, apellido, email, contraseña, teléfono y selecciona rol. El sistema encripta la clave mediante BCrypt y persiste al usuario asignándole su rol correspondiente.<br>3. **Login:** El usuario ingresa email y contraseña.<br>4. El sistema valida la contraseña encriptada comparándola con la de la base de datos.<br>5. El sistema responde con el perfil del usuario (nombre, email, rol) y redirige a la vista correspondiente. |
+| **Flujos de Excepción**| **E1 (Correo duplicado):** Si el email ya existe en `usuario`, la base de datos rechaza el registro lanzando una excepción controlada que se informa en la interfaz.<br>**E2 (Credenciales inválidas):** Si el correo o la contraseña no coinciden, se retorna error de credenciales incorrectas. |
+| **Persistencia (BD)** | **Registro:** `INSERT INTO usuario (nombre_usuario, apellido_usuario, email_usuario, password_hash_usuario, id_rol, estado_usuario) VALUES (...)`. `id_rol` referencia una fila de `rol`. |
+
+---
+
+#### **CU-02: Creación y Publicación de Eventos**
+
+> [!IMPORTANT]
+> El sistema restringe que los cupos totales excedan la capacidad máxima de la ubicación física seleccionada.
+
+| Elemento | Descripción |
+| :--- | :--- |
+| **Actor Principal** | Organizador. |
+| **Objetivo** | Registrar un nuevo espectáculo asociándolo a una categoría, una ubicación válida y definir su stock y precio de entradas. |
+| **Requisito Asociado**| RF2, RF5. |
+| **Precondición** | La categoría y la ubicación física ya deben existir y estar activas en el sistema. |
+| **Flujo Principal** | 1. El Organizador abre su panel de gestión y presiona "Crear Evento".<br>2. Completa los datos: título, descripción, fecha, hora, precio, cupos totales, imagen y selecciona la ubicación y categoría.<br>3. El sistema valida que los `cupos_totales_evento` sean menores o iguales a la `capacidad_maxima` de la ubicación.<br>4. El Organizador elige el estado: guardar como `BORRADOR` o `PUBLICADO` inmediatamente.<br>5. El sistema persiste el evento y, si fue publicado, se vuelve visible en el catálogo de los clientes. |
+| **Flujos de Excepción**| **E1 (Capacidad excedida):** Si los cupos del evento superan la capacidad física de la ubicación, el sistema rechaza la operación informando el límite máximo permitido.<br>**E2 (Fecha inválida):** Si la fecha del evento es anterior al día actual, el validador del backend rechaza la persistencia. |
+| **Persistencia (BD)** | `INSERT INTO evento (titulo_evento, precio_actual_entrada, cupo_total_evento, estado_evento, id_categoria, id_ubicacion, id_organizador, version_evento) VALUES (..., ?, ?, 'BORRADOR'/'PUBLICADO', ?, ?, ?, 0)`. |
+
+---
+
+#### **CU-03: Compra de Entradas y Emisión de Tickets**
+
+> [!WARNING]
+> La compra es una operación atómica protegida por transaccionalidad y bloqueo optimista para evitar la sobreventa.
+
+| Elemento | Descripción |
+| :--- | :--- |
+| **Actor Principal** | Cliente. |
+| **Objetivo** | Adquirir una o más entradas para un espectáculo con disponibilidad de cupos, registrando la transacción y emitiendo los tickets UUID. |
+| **Requisito Asociado**| RF3, RF4. |
+| **Precondición** | El evento debe estar en estado `PUBLICADO`, contar con stock y el cliente debe estar autenticado. |
+| **Flujo Principal** | 1. El cliente inicia sesión y navega al catálogo.<br>2. Selecciona un evento y una cantidad.<br>3. Confirma la compra simulada, sin ingresar datos bancarios.<br>4. El servicio bloquea optimistamente el evento y cuenta sus entradas vigentes.<br>5. Si hay cupo, inserta una cabecera de `compra` con cliente, fecha y estado.<br>6. Genera una fila en `entrada` por cada unidad, con UUID y precio histórico.<br>7. Registra la emisión en `historial_estado_entrada`.<br>8. Crea una `notificacion` y devuelve cantidad y total calculados. |
+| **Flujos de Excepción**| **E1 (Cupos agotados):** Si no hay stock suficiente, el sistema bloquea el flujo.<br>**E2 (Conflicto de Concurrencia):** Si dos transacciones intentan comprar simultáneamente el último cupo, el motor JPA intercepta la colisión mediante el campo `version` del evento, fallando la segunda de forma segura y deshaciendo el descuento de inventario (Rollback) para evitar sobreventa. |
+| **Persistencia (BD)** | 1. `SELECT evento ...` con bloqueo optimista y conteo de `entrada` vigente.<br>2. `INSERT INTO compra (fecha_compra, estado_compra, id_cliente) VALUES (NOW(), 'CONFIRMADA', ?)`.<br>3. Por cada ticket: `INSERT INTO entrada (codigo_unico_entrada, estado_entrada, precio_pagado_entrada, fecha_emision_entrada, id_evento, id_cliente, id_compra) VALUES (...)`.<br>4. Se insertan las filas de historial y la notificación en la misma transacción. |
+
+---
+
+#### **CU-04: Gestión Administrativa y Auditoría**
+
+| Elemento | Descripción |
+| :--- | :--- |
+| **Actor Principal** | Administrador (`ADMIN`). |
+| **Objetivo** | Gestionar los catálogos base del negocio (categorías y ubicaciones) y auditar las métricas de compras y tickets a nivel global de la plataforma. |
+| **Requisito Asociado**| RF6. |
+| **Precondición** | El usuario debe estar autenticado con rol `ADMIN`. |
+| **Flujo Principal** | 1. El Administrador accede a su panel de control administrativo.<br>2. Visualiza las tarjetas de resumen: ingresos totales cobrados por la plataforma, total de usuarios registrados y cantidad de eventos activos.<br>3. Accede al gestor de ubicaciones y añade un nuevo establecimiento físico indicando nombre, dirección y capacidad física máxima.<br>4. Accede al gestor de categorías para registrar nuevas categorías aplicables a los espectáculos. |
+| **Persistencia (BD)** | **Auditoría:** `SELECT SUM(precio_pagado_entrada) FROM entrada` y `SELECT COUNT(*) FROM usuario`.<br>**Creación:** `INSERT INTO ubicacion (nombre_ubicacion, direccion_ubicacion, capacidad_maxima_ubicacion, activa_ubicacion) VALUES (?, ?, ?, true)`. |
+
+---
+
+#### **CU-05: Validación de Entradas (Control de Acceso en Puerta)**
+
+> [!IMPORTANT]
+> Este caso de uso asegura que un ticket no pueda reutilizarse de forma fraudulenta.
+
+| Elemento | Descripción |
+| :--- | :--- |
+| **Actor Principal** | Organizador (personal de control de accesos). |
+| **Objetivo** | Verificar la validez de un ticket mediante su código único e impedir el reingreso de entradas ya validadas. |
+| **Requisito Asociado**| RF3. |
+| **Precondición** | El ticket debe existir en la base de datos. |
+| **Flujo Principal** | 1. El personal ingresa o escanea el UUID.<br>2. El sistema busca el ticket en `entrada`.<br>3. Comprueba que esté `CONFIRMADA`.<br>4. Cambia el estado a `USADA`, registra `fecha_validacion_entrada` e inserta el cambio en `historial_estado_entrada`, todo dentro de la misma transacción. |
+| **Flujos de Excepción**| **E1 (Entrada Inexistente):** Si el código UUID no se encuentra en el sistema, se muestra la alerta: "Ticket Inválido o Falso".<br>**E2 (Entrada Ya Usada):** Si el estado del ticket es `USADA`, el sistema responde: **"Acceso Denegado: Entrada ya utilizada"** junto con la fecha y hora en la que fue validada originalmente.<br>**E3 (Evento Cancelado):** Si el estado es `ANULADA` (debido a la cancelación del evento), el sistema niega el acceso. |
+| **Persistencia (BD)** | `SELECT * FROM entrada WHERE codigo_unico_entrada = ?`<br>`UPDATE entrada SET estado_entrada = 'USADA', fecha_validacion_entrada = NOW() WHERE id_entrada = ?`<br>`INSERT INTO historial_estado_entrada (...) VALUES (...)`. |
+
+---
+
+#### **CU-06: Panel del Cliente y Notificaciones**
+
+| Elemento | Descripción |
+| :--- | :--- |
+| **Actor Principal** | Cliente. |
+| **Objetivo** | Visualizar la bandeja de notificaciones operativas, consultar el historial de compras realizadas y descargar los códigos de validación de sus tickets. |
+| **Requisito Asociado**| RF5, RF6. |
+| **Precondición** | El cliente debe tener una cuenta activa e iniciar sesión. |
+| **Flujo Principal** | 1. El cliente ingresa a su Dashboard.<br>2. El sistema recupera y muestra su listado de compras realizadas ordenadas cronológicamente.<br>3. El cliente puede hacer clic en una compra para ver el detalle e inspeccionar los tickets individuales (UUIDs) asociados a ella.<br>4. El cliente ingresa a su bandeja de notificaciones internas para revisar avisos del sistema, marcándolos como leídos. |
+| **Persistencia (BD)** | `SELECT * FROM compra WHERE id_cliente = ? ORDER BY fecha_compra DESC`<br>`SELECT * FROM entrada WHERE id_compra = ?`<br>`SELECT * FROM notificacion WHERE id_usuario_destinatario = ? ORDER BY fecha_creacion_notificacion DESC`<br>`UPDATE notificacion SET leida_notificacion = true WHERE id_notificacion = ?`. |
+
+---
+
+## **4. Apéndices**
+
+### **4.1 Equipo de Trabajo: MLSN Group**
+*   **Mariano Piovesan** (Desarrollador frontend, encargado de las vistas interactivas en React y la integración con la API).
+*   **Leandro Gramajo Gargiulo** (Scrum Master, responsable de metodologías de trabajo ágiles y control de calidad operativa).
+*   **Santiago González Fernández** (Product Owner, encargado de definir requerimientos, reglas de negocio y priorización de funcionalidades).
+*   **Ignacio Molina Tula** (Desarrollador backend, diseñador del modelo relacional 3FN y lógica transaccional de persistencia).
+
+### **4.2 Contacto**
+*   **Responsable de Documentación:** Santiago González Fernández.
+*   **Teléfono de contacto:** `+54 3816288749`
+
+### **4.3 Diagrama Descriptivo de la Base de Datos**
+
+El diagrama físico editable que mapea las 9 tablas normalizadas en 3FN se entrega en [`butaca.dbml`](butaca.dbml) y puede abrirse en dbdiagram.io. La explicación en Mermaid se encuentra en [`docs/normalizacion-base-datos.md`](docs/normalizacion-base-datos.md).

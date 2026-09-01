@@ -5,9 +5,7 @@ function OrderSummary({ event, ticketType, quantity }) {
     return null;
   }
 
-  const subtotal = ticketType.precio * quantity;
-  const serviceFee = Math.round(subtotal * 0.12);
-  const total = subtotal + serviceFee;
+  const total = ticketType.precio * quantity;
 
   return (
     <aside className="order-summary">
@@ -19,10 +17,6 @@ function OrderSummary({ event, ticketType, quantity }) {
         <span>
           {quantity} x {formatPrice(ticketType.precio)}
         </span>
-      </div>
-      <div className="summary-line">
-        <span>Cargo de servicio</span>
-        <span>{formatPrice(serviceFee)}</span>
       </div>
       <div className="summary-line total">
         <span>Total</span>

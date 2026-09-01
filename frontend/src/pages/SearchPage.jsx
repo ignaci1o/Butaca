@@ -9,14 +9,23 @@ function SearchPage() {
   const [categories, setCategories] = useState(fallbackCategoryOptions);
   const [searchText, setSearchText] = useState("");
   const [category, setCategory] = useState("Todos");
-  const [maxPrice, setMaxPrice] = useState(300);
+  const [maxPrice, setMaxPrice] = useState(50000);
   const [sortBy, setSortBy] = useState("fecha");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getAllEvents().then(setEvents).catch(() => setEvents([]));
-    getCategories()
-      .then((items) => setCategories(["Todos", ...items.map((item) => item.nombre)]))
-      .catch(() => setCategories(fallbackCategoryOptions));
+    setLoading(true);
+    Promise.all([
+      getAllEvents().catch(() => []),
+      getCategories().catch(() => [])
+    ])
+      .then(([eventsData, categoriesData]) => {
+        setEvents(eventsData || []);
+        if (categoriesData && categoriesData.length > 0) {
+          setCategories(["Todos", ...categoriesData.map((item) => item.nombre)]);
+        }
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   const filteredEvents = useMemo(() => {
@@ -26,9 +35,10 @@ function SearchPage() {
       const term = searchText.toLowerCase();
       result = result.filter(
         (event) =>
-          event.nombre.toLowerCase().includes(term) ||
-          event.artista.toLowerCase().includes(term) ||
-          event.ciudad.toLowerCase().includes(term)
+          (event.nombre && event.nombre.toLowerCase().includes(term)) ||
+          (event.artista && event.artista.toLowerCase().includes(term)) ||
+          (event.ciudad && event.ciudad.toLowerCase().includes(term)) ||
+          (event.recinto && event.recinto.toLowerCase().includes(term))
       );
     }
 
@@ -49,28 +59,37 @@ function SearchPage() {
     return result;
   }, [category, events, maxPrice, searchText, sortBy]);
 
+  function handleReset() {
+    setSearchText("");
+    setCategory("Todos");
+    setMaxPrice(50000);
+    setSortBy("fecha");
+  }
+
   return (
     <section className="container page-block">
       <SectionTitle
-        eyebrow="Busqueda"
-        title="Encontra eventos publicados"
-        text="Filtra el catalogo por nombre, ciudad, categoria y precio."
+        eyebrow="Búsqueda de eventos"
+        title="Encontrá tu próximo espectáculo"
+        text="Filtrá la cartelera oficial por nombre, ciudad, categoría o rango de precios."
       />
 
       <div className="search-layout">
         <aside className="search-panel">
+          <h2 style={{ fontSize: "1.1rem", marginBottom: 16 }}>Filtros</h2>
+
           <label>
-            Buscar por nombre, artista o ciudad
+            Buscar por espectáculo, sala o artista
             <input
               type="text"
               value={searchText}
               onChange={(event) => setSearchText(event.target.value)}
-              placeholder="Ej: My Chemical Romance"
+              placeholder="Ej: Rock, Teatro, Vorterix..."
             />
           </label>
 
           <label>
-            Categoria
+            Categoría
             <select value={category} onChange={(event) => setCategory(event.target.value)}>
               {categories.map((option) => (
                 <option key={option} value={option}>
@@ -83,28 +102,48 @@ function SearchPage() {
           <label>
             Ordenar por
             <select value={sortBy} onChange={(event) => setSortBy(event.target.value)}>
-              <option value="fecha">Fecha</option>
-              <option value="precio">Precio</option>
-              <option value="popularidad">Disponibilidad</option>
+              <option value="fecha">Fecha (más cercanos)</option>
+              <option value="precio">Precio (menor a mayor)</option>
+              <option value="popularidad">Disponibilidad (más cupos)</option>
             </select>
           </label>
 
           <label>
-            Precio maximo: ${maxPrice}
+            Precio máximo: ${maxPrice.toLocaleString("es-AR")}
             <input
               type="range"
-              min="20"
-              max="300"
-              step="10"
+              min="1000"
+              max="50000"
+              step="1000"
               value={maxPrice}
               onChange={(event) => setMaxPrice(Number(event.target.value))}
             />
           </label>
+
+          <button
+            type="button"
+            className="text-link"
+            onClick={handleReset}
+            style={{ width: "100%", textAlign: "center", marginTop: 12 }}
+          >
+            Limpiar filtros
+          </button>
         </aside>
 
         <div className="search-results">
-          <p className="results-count">{filteredEvents.length} resultados encontrados</p>
-          <EventGrid events={filteredEvents} />
+          <p className="results-count">
+            {loading ? "Buscando eventos..." : `${filteredEvents.length} resultados encontrados`}
+          </p>
+
+          {loading ? (
+            <div className="event-grid">
+              <div className="skeleton skeleton-card" />
+              <div className="skeleton skeleton-card" />
+              <div className="skeleton skeleton-card" />
+            </div>
+          ) : (
+            <EventGrid events={filteredEvents} />
+          )}
         </div>
       </div>
     </section>
@@ -112,3 +151,4 @@ function SearchPage() {
 }
 
 export default SearchPage;
+

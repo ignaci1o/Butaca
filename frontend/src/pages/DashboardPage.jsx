@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-import AdminDashboard from "./AdminDashboard";
 import ClienteDashboard from "./ClienteDashboard";
 import OrganizerDashboard from "./OrganizerDashboard";
 
@@ -8,17 +7,13 @@ function DashboardPage({ currentUser }) {
     return (
       <section className="container page-block">
         <div className="empty-state">
-          <p>Inicia sesion para acceder a tu panel.</p>
+          <p>Inicie sesión para acceder a su cuenta.</p>
           <Link to="/login" className="pill-link">
             Ingresar
           </Link>
         </div>
       </section>
     );
-  }
-
-  if (currentUser.rol === "ADMIN") {
-    return <AdminDashboard currentUser={currentUser} />;
   }
 
   if (currentUser.rol === "ORGANIZADOR") {

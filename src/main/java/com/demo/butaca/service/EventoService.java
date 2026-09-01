@@ -2,63 +2,74 @@ package com.demo.butaca.service;
 
 import com.demo.butaca.dto.EventoRequestDTO;
 import com.demo.butaca.dto.EventoResponseDTO;
+import com.demo.butaca.dto.NotificacionDTO;
 import com.demo.butaca.model.Categoria;
+import com.demo.butaca.model.Entrada;
+import com.demo.butaca.model.EstadoEntrada;
 import com.demo.butaca.model.EstadoEvento;
 import com.demo.butaca.model.Evento;
+import com.demo.butaca.model.HistorialEstadoEntrada;
 import com.demo.butaca.model.Ubicacion;
 import com.demo.butaca.model.Usuario;
 import com.demo.butaca.repository.CategoriaRepository;
+import com.demo.butaca.repository.EntradaRepository;
 import com.demo.butaca.repository.EventoRepository;
+import com.demo.butaca.repository.HistorialEstadoEntradaRepository;
 import com.demo.butaca.repository.UbicacionRepository;
 import com.demo.butaca.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
 
 @Service
 public class EventoService {
 
+    private static final EnumSet<EstadoEntrada> ESTADOS_QUE_OCUPAN_CUPO =
+            EnumSet.of(EstadoEntrada.CONFIRMADA, EstadoEntrada.USADA);
+
     private final EventoRepository eventoRepository;
     private final UsuarioRepository usuarioRepository;
     private final CategoriaRepository categoriaRepository;
     private final UbicacionRepository ubicacionRepository;
+    private final EntradaRepository entradaRepository;
+    private final HistorialEstadoEntradaRepository historialRepository;
+    private final NotificacionService notificacionService;
 
     public EventoService(EventoRepository eventoRepository, UsuarioRepository usuarioRepository,
-                         CategoriaRepository categoriaRepository, UbicacionRepository ubicacionRepository) {
+                         CategoriaRepository categoriaRepository, UbicacionRepository ubicacionRepository,
+                         EntradaRepository entradaRepository, HistorialEstadoEntradaRepository historialRepository,
+                         NotificacionService notificacionService) {
         this.eventoRepository = eventoRepository;
         this.usuarioRepository = usuarioRepository;
         this.categoriaRepository = categoriaRepository;
         this.ubicacionRepository = ubicacionRepository;
+        this.entradaRepository = entradaRepository;
+        this.historialRepository = historialRepository;
+        this.notificacionService = notificacionService;
     }
 
     @Transactional
     public EventoResponseDTO crearEvento(EventoRequestDTO request) {
-        Usuario organizador = usuarioRepository.findById(request.getOrganizadorIdEvento())
-                .orElseThrow(() -> new IllegalArgumentException("Organizador no encontrado"));
-
+        Usuario organizador = buscarOrganizador(request.getOrganizadorIdEvento());
         Evento evento = new Evento();
         aplicarDatos(evento, request);
-        evento.setCuposDisponibleEvento(request.getCuposTotalesEvento());
         evento.setEstadoPublicacionEvento(parseEstado(request.getEstadoPublicacionEvento(), EstadoEvento.BORRADOR));
         evento.setOrganizador(organizador);
-
         return toDTO(eventoRepository.save(evento));
     }
 
     @Transactional(readOnly = true)
     public List<EventoResponseDTO> listarEventosPublicados(Long categoriaId) {
-        List<Evento> eventos = eventoRepository
-                .findByEstadoPublicacionEventoAndCuposDisponibleEventoGreaterThanOrderByFechaEventoAsc(EstadoEvento.PUBLICADO, 0);
-
-        if (categoriaId != null) {
-            eventos = eventos.stream()
-                    .filter(evento -> evento.getCategoria() != null
-                            && categoriaId.equals(evento.getCategoria().getIdCategoria()))
-                    .toList();
-        }
-
-        return eventos.stream().map(this::toDTO).toList();
+        return eventoRepository.findByEstadoPublicacionEventoOrderByFechaEventoAsc(EstadoEvento.PUBLICADO).stream()
+                .filter(evento -> categoriaId == null
+                        || (evento.getCategoria() != null
+                        && categoriaId.equals(evento.getCategoria().getIdCategoria())))
+                .filter(evento -> calcularCuposDisponibles(evento) > 0)
+                .map(this::toDTO)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -74,14 +85,15 @@ public class EventoService {
     @Transactional
     public EventoResponseDTO editarEvento(Long id, EventoRequestDTO request) {
         Evento evento = buscarEvento(id);
-        int vendidos = evento.getCuposTotalesEvento() - evento.getCuposDisponibleEvento();
-        if (request.getCuposTotalesEvento() < vendidos) {
-            throw new IllegalStateException("Los cupos totales no pueden ser menores a los ya vendidos");
+        int entradasVigentes = contarEntradasVigentes(evento.getIdEvento());
+        if (request.getCuposTotalesEvento() < entradasVigentes) {
+            throw new IllegalStateException("Los cupos totales no pueden ser menores a las entradas ya emitidas");
         }
+
         aplicarDatos(evento, request);
-        evento.setCuposDisponibleEvento(request.getCuposTotalesEvento() - vendidos);
         if (request.getEstadoPublicacionEvento() != null) {
-            evento.setEstadoPublicacionEvento(parseEstado(request.getEstadoPublicacionEvento(), evento.getEstadoPublicacionEvento()));
+            evento.setEstadoPublicacionEvento(
+                    parseEstado(request.getEstadoPublicacionEvento(), evento.getEstadoPublicacionEvento()));
         }
         return toDTO(eventoRepository.save(evento));
     }
@@ -95,7 +107,7 @@ public class EventoService {
     public List<EventoResponseDTO> listarEventosPorCategoria(Long categoriaId) {
         return eventoRepository.findByCategoriaIdCategoria(categoriaId).stream()
                 .filter(evento -> EstadoEvento.PUBLICADO.equals(evento.getEstadoPublicacionEvento()))
-                .filter(evento -> evento.getCuposDisponibleEvento() > 0)
+                .filter(evento -> calcularCuposDisponibles(evento) > 0)
                 .map(this::toDTO)
                 .toList();
     }
@@ -103,8 +115,12 @@ public class EventoService {
     @Transactional
     public void publicarEvento(Long id) {
         Evento evento = buscarEvento(id);
-        if (evento.getCuposTotalesEvento() <= 0 || evento.getCuposDisponibleEvento() < 0) {
-            throw new IllegalStateException("El evento no tiene cupos validos para publicarse");
+        if (!Boolean.TRUE.equals(evento.getUbicacion().getActivo())) {
+            throw new IllegalStateException("No se puede publicar en una ubicacion inactiva");
+        }
+        if (evento.getCuposTotalesEvento() <= 0
+                || evento.getCuposTotalesEvento() > evento.getUbicacion().getCapacidadMaxima()) {
+            throw new IllegalStateException("El evento no tiene un cupo valido para publicarse");
         }
         evento.setEstadoPublicacionEvento(EstadoEvento.PUBLICADO);
         eventoRepository.save(evento);
@@ -115,31 +131,46 @@ public class EventoService {
         Evento evento = buscarEvento(id);
         evento.setEstadoPublicacionEvento(EstadoEvento.CANCELADO);
         eventoRepository.save(evento);
+
+        List<Entrada> entradas = entradaRepository.findByEventoIdEventoAndEstadoEntrada(
+                id, EstadoEntrada.CONFIRMADA);
+        LocalDateTime ahora = LocalDateTime.now();
+
+        for (Entrada entrada : entradas) {
+            entrada.setEstadoEntrada(EstadoEntrada.ANULADA);
+            historialRepository.save(HistorialEstadoEntrada.builder()
+                    .entrada(entrada)
+                    .estadoAnteriorEntrada(EstadoEntrada.CONFIRMADA)
+                    .estadoNuevoEntrada(EstadoEntrada.ANULADA)
+                    .motivoCambioEntrada("Evento cancelado")
+                    .fechaCambioEntrada(ahora)
+                    .build());
+        }
+        entradaRepository.saveAll(entradas);
+
+        entradas.stream()
+                .map(Entrada::getCliente)
+                .filter(cliente -> cliente != null)
+                .distinct()
+                .forEach(cliente -> notificacionService.crearNotificacion(NotificacionDTO.builder()
+                        .usuarioId(cliente.getIdUsuario())
+                        .eventoId(evento.getIdEvento())
+                        .mensaje("El evento " + evento.getTituloEvento() + " fue cancelado")
+                        .tipo("CANCELACION")
+                        .fechaEnvio(ahora)
+                        .build()));
     }
 
-    @Transactional
-    public EventoResponseDTO actualizarCuposDisponibles(Long id, int cuposDisponibles) {
-        Evento evento = buscarEvento(id);
-        if (cuposDisponibles < 0 || cuposDisponibles > evento.getCuposTotalesEvento()) {
-            throw new IllegalArgumentException("Cupos disponibles fuera de rango");
-        }
-        evento.setCuposDisponibleEvento(cuposDisponibles);
-        return toDTO(eventoRepository.save(evento));
+    public int calcularCuposDisponibles(Evento evento) {
+        return Math.max(0, evento.getCuposTotalesEvento() - contarEntradasVigentes(evento.getIdEvento()));
     }
 
-    @Transactional
-    public void descontarCupos(Evento evento, int cantidad) {
-        if (cantidad <= 0) {
-            throw new IllegalArgumentException("La cantidad debe ser mayor a cero");
+    private int contarEntradasVigentes(Long eventoId) {
+        if (eventoId == null) {
+            return 0;
         }
-        if (!EstadoEvento.PUBLICADO.equals(evento.getEstadoPublicacionEvento())) {
-            throw new IllegalStateException("El evento no esta publicado");
-        }
-        if (evento.getCuposDisponibleEvento() < cantidad) {
-            throw new IllegalStateException("Cupos insuficientes");
-        }
-        evento.setCuposDisponibleEvento(evento.getCuposDisponibleEvento() - cantidad);
-        eventoRepository.save(evento);
+        return Math.toIntExact(
+                entradaRepository.countByEventoIdEventoAndEstadoEntradaIn(eventoId, ESTADOS_QUE_OCUPAN_CUPO));
     }
 
     private Evento buscarEvento(Long id) {
@@ -147,11 +178,28 @@ public class EventoService {
                 .orElseThrow(() -> new IllegalArgumentException("Evento no encontrado"));
     }
 
+    private Usuario buscarOrganizador(Long id) {
+        Usuario organizador = usuarioRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Organizador no encontrado"));
+        String rol = organizador.getRol() == null ? null : organizador.getRol().getNombre();
+        if (!"ORGANIZADOR".equals(rol) && !"ADMIN".equals(rol)) {
+            throw new IllegalArgumentException("El usuario no tiene permisos para organizar eventos");
+        }
+        return organizador;
+    }
+
     private void aplicarDatos(Evento evento, EventoRequestDTO request) {
-        Ubicacion ubicacion = resolverUbicacion(request);
+        Ubicacion ubicacion = ubicacionRepository.findById(request.getUbicacionId())
+                .orElseThrow(() -> new IllegalArgumentException("Ubicacion no encontrada"));
+        if (!Boolean.TRUE.equals(ubicacion.getActivo())) {
+            throw new IllegalStateException("La ubicacion seleccionada no esta activa");
+        }
         if (request.getCuposTotalesEvento() > ubicacion.getCapacidadMaxima()) {
             throw new IllegalArgumentException("Los cupos totales no pueden superar la capacidad de la ubicacion");
         }
+
+        Categoria categoria = categoriaRepository.findById(request.getCategoriaId())
+                .orElseThrow(() -> new IllegalArgumentException("Categoria no encontrada"));
 
         evento.setTituloEvento(request.getTituloEvento().trim());
         evento.setDescripcionEvento(request.getDescripcionEvento());
@@ -160,55 +208,8 @@ public class EventoService {
         evento.setPrecioEntradaEvento(request.getPrecioEntradaEvento());
         evento.setCuposTotalesEvento(request.getCuposTotalesEvento());
         evento.setImagenUrl(request.getImagenUrl());
-        evento.setCategoria(buscarCategoria(request.getCategoriaId()));
+        evento.setCategoria(categoria);
         evento.setUbicacion(ubicacion);
-    }
-
-    private Categoria buscarCategoria(Long categoriaId) {
-        if (categoriaId == null) {
-            return null;
-        }
-        return categoriaRepository.findById(categoriaId)
-                .orElseThrow(() -> new IllegalArgumentException("Categoria no encontrada"));
-    }
-
-    private Ubicacion resolverUbicacion(EventoRequestDTO request) {
-        if (request.getUbicacionId() != null) {
-            Ubicacion ubicacion = ubicacionRepository.findById(request.getUbicacionId())
-                    .orElseThrow(() -> new IllegalArgumentException("Ubicacion no encontrada"));
-            if (!Boolean.TRUE.equals(ubicacion.getActivo())) {
-                throw new IllegalStateException("La ubicacion seleccionada no esta activa");
-            }
-            return ubicacion;
-        }
-
-        String nombreLugar = primerTexto(request.getNombreLugar(), request.getUbicacionEvento());
-        String direccion = primerTexto(request.getDireccion(), request.getDetallesUbicacionEvento(), request.getUbicacionEvento());
-        Integer capacidad = request.getCapacidadMaxima() == null ? request.getCuposTotalesEvento() : request.getCapacidadMaxima();
-
-        if (nombreLugar == null || direccion == null || capacidad == null || capacidad <= 0) {
-            throw new IllegalArgumentException("Debe indicar ubicacion_id o los datos completos de la ubicacion");
-        }
-
-        String nombreNormalizado = nombreLugar.trim();
-        String direccionNormalizada = direccion.trim();
-        return ubicacionRepository
-                .findByNombreLugarIgnoreCaseAndDireccionIgnoreCase(nombreNormalizado, direccionNormalizada)
-                .orElseGet(() -> ubicacionRepository.save(Ubicacion.builder()
-                        .nombreLugar(nombreNormalizado)
-                        .direccion(direccionNormalizada)
-                        .capacidadMaxima(capacidad)
-                        .activo(true)
-                        .build()));
-    }
-
-    private String primerTexto(String... valores) {
-        for (String valor : valores) {
-            if (valor != null && !valor.isBlank()) {
-                return valor;
-            }
-        }
-        return null;
     }
 
     private EstadoEvento parseEstado(String raw, EstadoEvento defaultValue) {
@@ -220,13 +221,10 @@ public class EventoService {
 
     public EventoResponseDTO toDTO(Evento evento) {
         Ubicacion ubicacion = evento.getUbicacion();
-        Integer cupos = evento.getCuposDisponibleEvento();
         return EventoResponseDTO.builder()
                 .idEvento(evento.getIdEvento())
                 .tituloEvento(evento.getTituloEvento())
                 .descripcionEvento(evento.getDescripcionEvento())
-                .ubicacionEvento(ubicacion == null ? null : ubicacion.getNombreLugar())
-                .detallesUbicacionEvento(ubicacion == null ? null : ubicacion.getDireccion())
                 .ubicacionId(ubicacion == null ? null : ubicacion.getIdUbicacion())
                 .ubicacionNombre(ubicacion == null ? null : ubicacion.getNombreLugar())
                 .ubicacionDireccion(ubicacion == null ? null : ubicacion.getDireccion())
@@ -235,16 +233,13 @@ public class EventoService {
                 .horaEvento(evento.getHoraEvento())
                 .precioEntradaEvento(evento.getPrecioEntradaEvento())
                 .cuposTotalesEvento(evento.getCuposTotalesEvento())
-                .cuposDisponibles(cupos)
-                .cuposDisponibleEvento(cupos)
+                .cuposDisponibles(calcularCuposDisponibles(evento))
                 .estadoPublicacionEvento(evento.getEstadoPublicacionEvento().name())
                 .imagenUrl(evento.getImagenUrl())
                 .categoriaId(evento.getCategoria() == null ? null : evento.getCategoria().getIdCategoria())
                 .categoriaNombre(evento.getCategoria() == null ? null : evento.getCategoria().getNombre())
                 .organizadorIdEvento(evento.getOrganizador() == null ? null : evento.getOrganizador().getIdUsuario())
                 .version(evento.getVersion())
-                .createdAt(evento.getCreatedAt())
-                .updatedAt(evento.getUpdatedAt())
                 .build();
     }
 }

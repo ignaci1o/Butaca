@@ -8,15 +8,11 @@ import { clearSelectedOrder, getSelectedOrder, saveSelectedOrder } from "../util
 function CheckoutPage({ currentUser }) {
   const navigate = useNavigate();
   const order = getSelectedOrder();
-  const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     nombre: currentUser ? `${currentUser.nombre} ${currentUser.apellido || ""}`.trim() : "",
     email: currentUser?.email || "",
-    documento: "",
-    tarjeta: "",
-    vencimiento: "",
-    seguridad: ""
+    documento: ""
   });
 
   if (!order) {
@@ -43,12 +39,6 @@ function CheckoutPage({ currentUser }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
-
-    if (step === 1) {
-      setStep(2);
-      return;
-    }
-
     setLoading(true);
 
     try {
@@ -61,8 +51,7 @@ function CheckoutPage({ currentUser }) {
         eventoId: order.event.id,
         usuarioId: currentUser.id,
         tipoEntrada: order.ticketType.id,
-        cantidad: order.quantity,
-        total: order.total
+        cantidad: order.quantity
       });
 
       saveSelectedOrder({
@@ -87,54 +76,31 @@ function CheckoutPage({ currentUser }) {
       <div className="checkout-layout">
         <form className="checkout-form" onSubmit={handleSubmit}>
           <p className="section-eyebrow">Checkout</p>
-          <h1>{step === 1 ? "Tus datos" : "Pago"}</h1>
-          <p>Confirma los datos de la compra antes de emitir tus entradas.</p>
+          <h1>Confirmar compra</h1>
+          <p>El pago es simulado para la demostracion académica. No se solicitan datos de tarjeta.</p>
 
-          {step === 1 ? (
-            <div className="form-grid">
-              <label>
-                Nombre completo
-                <input name="nombre" value={formData.nombre} onChange={handleChange} required />
-              </label>
-              <label>
-                Correo electronico
-                <input name="email" type="email" value={formData.email} onChange={handleChange} required />
-              </label>
-              <label>
-                Documento
-                <input name="documento" value={formData.documento} onChange={handleChange} required />
-              </label>
-            </div>
-          ) : (
-            <div className="form-grid">
-              <label>
-                Numero de tarjeta
-                <input name="tarjeta" value={formData.tarjeta} onChange={handleChange} required />
-              </label>
-              <label>
-                Vencimiento
-                <input name="vencimiento" placeholder="MM/AA" value={formData.vencimiento} onChange={handleChange} required />
-              </label>
-              <label>
-                Codigo de seguridad
-                <input name="seguridad" value={formData.seguridad} onChange={handleChange} required />
-              </label>
-            </div>
-          )}
+          <div className="form-grid">
+            <label>
+              Nombre completo
+              <input name="nombre" value={formData.nombre} onChange={handleChange} required />
+            </label>
+            <label>
+              Correo electronico
+              <input name="email" type="email" value={formData.email} onChange={handleChange} required />
+            </label>
+            <label>
+              Documento
+              <input name="documento" value={formData.documento} onChange={handleChange} required />
+            </label>
+          </div>
 
           <div className="checkout-actions">
-            {step === 2 ? (
-              <Button type="button" variant="ghost" onClick={() => setStep(1)}>
-                Volver
-              </Button>
-            ) : (
-              <Button type="button" variant="ghost" onClick={handleCancel}>
-                Cancelar
-              </Button>
-            )}
+            <Button type="button" variant="ghost" onClick={handleCancel}>
+              Cancelar
+            </Button>
 
             <Button type="submit" disabled={loading}>
-              {loading ? "Procesando..." : step === 1 ? "Continuar" : "Confirmar compra"}
+              {loading ? "Procesando..." : "Confirmar compra"}
             </Button>
           </div>
         </form>

@@ -23,12 +23,6 @@ public class CompraResponseDTO {
     private Integer cantidad;
     private BigDecimal total;
 
-    @JsonProperty("usuario_id")
-    private Long usuarioId;
-
-    @JsonProperty("usuario_email")
-    private String usuarioEmail;
-
     @JsonProperty("cliente_id")
     private Long clienteId;
 
@@ -40,6 +34,9 @@ public class CompraResponseDTO {
 
     @JsonProperty("evento_titulo")
     private String eventoTitulo;
+
+    @JsonProperty("estado_compra")
+    private String estadoCompra;
 
     private List<EntradaResponseDTO> entradas;
 }

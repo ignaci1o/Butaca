@@ -29,7 +29,9 @@ function OrganizerDashboard({ currentUser }) {
   const [locations, setLocations] = useState([]);
   const [formData, setFormData] = useState(initialForm);
   const [showForm, setShowForm] = useState(false);
+  const [filterStatus, setFilterStatus] = useState("TODOS");
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
 
   const organizerId = currentUser?.id;
@@ -39,14 +41,20 @@ function OrganizerDashboard({ currentUser }) {
   }, [organizerId]);
 
   const totals = useMemo(() => {
-    const capacity = events.reduce((sum, event) => sum + event.cuposTotales, 0);
-    const available = events.reduce((sum, event) => sum + event.disponibilidad, 0);
+    const capacity = events.reduce((sum, event) => sum + (event.cuposTotales || 0), 0);
+    const available = events.reduce((sum, event) => sum + (event.disponibilidad || 0), 0);
+    const sold = Math.max(0, capacity - available);
     return {
       events: events.length,
-      sold: capacity - available,
+      sold,
       revenue: orders.reduce((sum, order) => sum + Number(order.total || 0), 0)
     };
   }, [events, orders]);
+
+  const filteredEvents = useMemo(() => {
+    if (filterStatus === "TODOS") return events;
+    return events.filter((e) => e.estado === filterStatus);
+  }, [events, filterStatus]);
 
   async function loadDashboard() {
     if (!organizerId) {
@@ -62,10 +70,10 @@ function OrganizerDashboard({ currentUser }) {
         getCategories(),
         getLocations()
       ]);
-      setEvents(eventData);
-      setOrders(orderData);
-      setCategories(categoryData);
-      setLocations(locationData);
+      setEvents(eventData || []);
+      setOrders(orderData || []);
+      setCategories(categoryData || []);
+      setLocations(locationData || []);
       setFormData((current) => ({
         ...current,
         categoria_id: current.categoria_id || categoryData[0]?.id || "",
@@ -86,6 +94,7 @@ function OrganizerDashboard({ currentUser }) {
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
+    setActionLoading(true);
 
     try {
       await createOrganizerEvent({
@@ -106,23 +115,42 @@ function OrganizerDashboard({ currentUser }) {
       await loadDashboard();
     } catch (submitError) {
       setError(submitError.message);
+    } finally {
+      setActionLoading(false);
     }
   }
 
   async function handlePublish(eventId) {
-    await publishEvent(eventId);
-    await loadDashboard();
+    try {
+      setActionLoading(true);
+      await publishEvent(eventId);
+      await loadDashboard();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   async function handleCancel(eventId) {
-    await cancelEvent(eventId);
-    await loadDashboard();
+    if (!window.confirm("¿Seguro que deseas cancelar este evento? Las entradas confirmadas se anularán.")) {
+      return;
+    }
+    try {
+      setActionLoading(true);
+      await cancelEvent(eventId);
+      await loadDashboard();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
   }
 
   if (!currentUser || !["ORGANIZADOR", "ADMIN"].includes(currentUser.rol)) {
     return (
       <section className="container page-block">
-        <div className="empty-state">No tenes permisos para ver este panel.</div>
+        <div className="empty-state">No cuenta con permisos para ver este panel.</div>
       </section>
     );
   }
@@ -131,11 +159,11 @@ function OrganizerDashboard({ currentUser }) {
     <section className="container page-block">
       <div className="dashboard-header">
         <div>
-          <p className="section-eyebrow">Organizador</p>
-          <h1>Eventos y ventas</h1>
+          <p className="section-eyebrow">Panel de Gestión</p>
+          <h1>Eventos y Ventas</h1>
         </div>
         <button type="button" className="pill-link" onClick={() => setShowForm((value) => !value)}>
-          {showForm ? "Cerrar" : "Nuevo evento"}
+          {showForm ? "Cerrar formulario" : "+ Nuevo evento"}
         </button>
       </div>
 
@@ -143,29 +171,33 @@ function OrganizerDashboard({ currentUser }) {
 
       <div className="stats-grid">
         <div className="stat-card">
-          <span>Eventos</span>
+          <span>Eventos Creados</span>
           <strong>{totals.events}</strong>
         </div>
         <div className="stat-card">
-          <span>Entradas vendidas</span>
+          <span>Entradas Vendidas</span>
           <strong>{totals.sold}</strong>
         </div>
         <div className="stat-card">
-          <span>Facturacion registrada</span>
+          <span>Facturación Registrada</span>
           <strong>{formatPrice(totals.revenue)}</strong>
         </div>
       </div>
 
       {showForm ? (
-        <form className="dashboard-panel event-form" onSubmit={handleSubmit}>
-          <h2>Nuevo evento</h2>
+        <form className="dashboard-panel event-form" onSubmit={handleSubmit} style={{ animation: "fadeIn 0.3s" }}>
+          <h2>Crear Nuevo Evento</h2>
+          <p style={{ color: "var(--text-2)", fontSize: "0.85rem", margin: "0 0 18px" }}>
+            El evento se registrará en estado <strong>BORRADOR</strong>. Podrá publicarlo una vez verificados los datos.
+          </p>
+
           <div className="form-grid two-columns">
             <label>
-              Titulo
-              <input name="titulo_evento" value={formData.titulo_evento} onChange={handleChange} required />
+              Título del evento
+              <input name="titulo_evento" value={formData.titulo_evento} onChange={handleChange} placeholder="Ej: Recital Acústico" required />
             </label>
             <label>
-              Categoria
+              Categoría
               <select name="categoria_id" value={formData.categoria_id} onChange={handleChange} required>
                 {categories.map((category) => (
                   <option key={category.id} value={category.id}>
@@ -175,25 +207,25 @@ function OrganizerDashboard({ currentUser }) {
               </select>
             </label>
             <label className="span-2">
-              Descripcion
-              <textarea name="descripcion_evento" value={formData.descripcion_evento} onChange={handleChange} rows="3" />
+              Descripción
+              <textarea name="descripcion_evento" value={formData.descripcion_evento} onChange={handleChange} rows="3" placeholder="Detalles de la función, bandas o temario..." />
             </label>
             <label>
-              Ubicacion
+              Ubicación física
               <select name="ubicacion_id" value={formData.ubicacion_id} onChange={handleChange} required>
                 {locations.map((location) => (
                   <option key={location.id} value={location.id}>
-                    {location.nombre} · {location.capacidadMaxima}
+                    {location.nombre} · Capacidad: {location.capacidadMaxima}
                   </option>
                 ))}
               </select>
             </label>
             <label>
-              Imagen URL
-              <input name="imagen_url" value={formData.imagen_url} onChange={handleChange} />
+              URL de imagen de portada
+              <input name="imagen_url" value={formData.imagen_url} onChange={handleChange} placeholder="https://images.unsplash.com/..." />
             </label>
             <label>
-              Fecha
+              Fecha del evento
               <input type="date" name="fecha_evento" value={formData.fecha_evento} onChange={handleChange} required />
             </label>
             <label>
@@ -201,59 +233,147 @@ function OrganizerDashboard({ currentUser }) {
               <input type="time" name="hora_evento" value={formData.hora_evento} onChange={handleChange} required />
             </label>
             <label>
-              Precio
-              <input type="number" min="0" step="0.01" name="precio_entrada_evento" value={formData.precio_entrada_evento} onChange={handleChange} required />
+              Precio por entrada ($)
+              <input type="number" min="0" step="0.01" name="precio_entrada_evento" value={formData.precio_entrada_evento} onChange={handleChange} placeholder="Ej: 12000" required />
             </label>
             <label>
-              Cupos
-              <input type="number" min="1" name="cupos_totales_evento" value={formData.cupos_totales_evento} onChange={handleChange} required />
+              Cupos totales disponibles
+              <input type="number" min="1" name="cupos_totales_evento" value={formData.cupos_totales_evento} onChange={handleChange} placeholder="Ej: 200" required />
             </label>
           </div>
-          <div className="form-actions-row">
-            <button type="submit" className="button button-primary">
-              Guardar borrador
+
+          <div className="form-actions-row" style={{ gap: 10 }}>
+            <button type="button" className="button button-ghost" onClick={() => setShowForm(false)}>
+              Cancelar
+            </button>
+            <button type="submit" className="button button-primary" disabled={actionLoading}>
+              {actionLoading ? "Guardando..." : "Guardar borrador"}
             </button>
           </div>
         </form>
       ) : null}
 
       {loading ? (
-        <p className="empty-state">Cargando panel...</p>
+        <div className="dashboard-grid">
+          <div className="skeleton skeleton-card" />
+          <div className="skeleton skeleton-card" />
+        </div>
       ) : (
         <div className="dashboard-grid">
           <section className="dashboard-panel">
-            <h2>Eventos</h2>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <h2>Mis Eventos ({filteredEvents.length})</h2>
+              <div style={{ display: "flex", gap: 6 }}>
+                {["TODOS", "PUBLICADO", "BORRADOR", "CANCELADO"].map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    className={`btn-copy ${filterStatus === status ? "copied" : ""}`}
+                    onClick={() => setFilterStatus(status)}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
+            </div>
+
             <div className="table-list">
-              {events.length ? events.map((event) => (
-                <div key={event.id}>
-                  <strong>{event.nombre}</strong>
-                  <span>{formatDate(event.fecha)} · {event.hora} · {event.disponibilidad}/{event.cuposTotales} cupos · {event.estado}</span>
-                  <div className="row-actions">
-                    {event.estado === "BORRADOR" ? (
-                      <button type="button" className="text-link" onClick={() => handlePublish(event.id)}>
-                        Publicar
-                      </button>
-                    ) : null}
-                    {event.estado !== "CANCELADO" ? (
-                      <button type="button" className="text-link" onClick={() => handleCancel(event.id)}>
-                        Cancelar
-                      </button>
-                    ) : null}
-                  </div>
-                </div>
-              )) : <p className="empty-inline">No hay eventos cargados.</p>}
+              {filteredEvents.length ? (
+                filteredEvents.map((event) => {
+                  const total = event.cuposTotales || 1;
+                  const avail = event.disponibilidad ?? 0;
+                  const sold = Math.max(0, total - avail);
+                  const occupancy = Math.round((sold / total) * 100);
+
+                  const badgeClass =
+                    event.estado === "PUBLICADO"
+                      ? "badge-success"
+                      : event.estado === "BORRADOR"
+                      ? "badge-warning"
+                      : "badge-danger";
+
+                  return (
+                    <div key={event.id}>
+                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <strong style={{ fontSize: "1.05rem" }}>{event.nombre}</strong>
+                        <span className={`badge-status ${badgeClass}`}>
+                          {event.estado}
+                        </span>
+                      </div>
+
+                      <span>
+                        {formatDate(event.fecha)} · {event.hora}hs · {event.recinto || event.ciudad} · {formatPrice(event.precioMinimo)}
+                      </span>
+
+                      {/* Barra de ocupación */}
+                      <div className="capacity-tracker" style={{ margin: "6px 0" }}>
+                        <div className="capacity-info" style={{ fontSize: "0.75rem" }}>
+                          <span>Ocupación</span>
+                          <strong>{sold} de {total} ({occupancy}%)</strong>
+                        </div>
+                        <div className="progress-track" style={{ height: 6 }}>
+                          <div
+                            className="progress-fill"
+                            style={{ width: `${occupancy}%` }}
+                          />
+                        </div>
+                      </div>
+
+                      <div className="row-actions">
+                        {event.estado === "BORRADOR" ? (
+                          <button
+                            type="button"
+                            className="btn-copy"
+                            onClick={() => handlePublish(event.id)}
+                            disabled={actionLoading}
+                          >
+                            Publicar evento
+                          </button>
+                        ) : null}
+                        {event.estado !== "CANCELADO" ? (
+                          <button
+                            type="button"
+                            className="btn-copy"
+                            style={{ color: "#f87171" }}
+                            onClick={() => handleCancel(event.id)}
+                            disabled={actionLoading}
+                          >
+                            Cancelar evento
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <p className="empty-inline">No hay eventos registrados para este filtro.</p>
+              )}
             </div>
           </section>
 
           <section className="dashboard-panel">
-            <h2>Compras recibidas</h2>
+            <h2>Últimas Ventas Registradas</h2>
             <div className="table-list">
-              {orders.length ? orders.slice(0, 8).map((order) => (
-                <div key={order.id}>
-                  <strong>{order.evento_titulo}</strong>
-                  <span>{order.cliente_email || order.usuario_email} · {order.cantidad} entrada(s) · {formatPrice(order.total)}</span>
-                </div>
-              )) : <p className="empty-inline">No hay compras para tus eventos.</p>}
+              {orders.length ? (
+                orders.slice(0, 10).map((order) => (
+                  <div key={order.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <div>
+                      <strong>{order.evento_titulo}</strong>
+                      <span>
+                        {order.cliente_email} · {order.cantidad} entrada(s)
+                      </span>
+                      <small style={{ color: "var(--text-3)", display: "block" }}>
+                        {formatDate(order.fecha_compra)}
+                      </small>
+                    </div>
+                    <strong style={{ color: "var(--primary-2)", fontSize: "1.05rem" }}>
+                      {formatPrice(order.total)}
+                    </strong>
+                  </div>
+                ))
+              ) : (
+                <p className="empty-inline">Aún no se registran compras para sus eventos.</p>
+              )}
             </div>
           </section>
         </div>

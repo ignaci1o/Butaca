@@ -1,8 +1,11 @@
 package com.demo.butaca.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -18,24 +21,12 @@ public class EventoRequestDTO {
     @JsonProperty("descripcion_evento")
     private String descripcionEvento;
 
-    @JsonProperty("ubicacion_evento")
-    private String ubicacionEvento;
-
-    @JsonProperty("detalles_ubicacion_evento")
-    private String detallesUbicacionEvento;
-
+    @NotNull
     @JsonProperty("ubicacion_id")
     private Long ubicacionId;
 
-    @JsonProperty("nombre_lugar")
-    private String nombreLugar;
-
-    private String direccion;
-
-    @JsonProperty("capacidad_maxima")
-    private Integer capacidadMaxima;
-
     @NotNull
+    @FutureOrPresent
     @JsonProperty("fecha_evento")
     private LocalDate fechaEvento;
 
@@ -44,10 +35,12 @@ public class EventoRequestDTO {
     private LocalTime horaEvento;
 
     @NotNull
+    @DecimalMin("0.0")
     @JsonProperty("precio_entrada_evento")
     private BigDecimal precioEntradaEvento;
 
     @NotNull
+    @Positive
     @JsonProperty("cupos_totales_evento")
     private Integer cuposTotalesEvento;
 
@@ -57,6 +50,7 @@ public class EventoRequestDTO {
     @JsonProperty("imagen_url")
     private String imagenUrl;
 
+    @NotNull
     @JsonProperty("categoria_id")
     private Long categoriaId;
 

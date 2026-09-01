@@ -18,7 +18,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/eventos")
@@ -78,15 +77,4 @@ public class EventoController {
         eventoService.cancelarEvento(id);
     }
 
-    @PutMapping("/{id}/cupos")
-    public EventoResponseDTO actualizarCupos(@PathVariable Long id, @RequestBody Map<String, Integer> body) {
-        Integer cupos = body.get("cupos_disponibles");
-        if (cupos == null) {
-            cupos = body.get("cuposDisponibleEvento");
-        }
-        if (cupos == null) {
-            throw new IllegalArgumentException("cupos_disponibles es requerido");
-        }
-        return eventoService.actualizarCuposDisponibles(id, cupos);
-    }
 }

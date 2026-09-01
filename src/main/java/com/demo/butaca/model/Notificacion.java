@@ -17,7 +17,7 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notificaciones")
+@Table(name = "notificacion")
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor
@@ -32,26 +32,26 @@ public class Notificacion extends AuditableEntity {
     private Long idNotificacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "usuario_id", nullable = false)
+    @JoinColumn(name = "id_usuario_destinatario", nullable = false)
     private Usuario usuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "evento_id")
+    @JoinColumn(name = "id_evento_relacionado")
     private Evento evento;
 
-    @Column(name = "mensaje", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "mensaje_notificacion", nullable = false, columnDefinition = "TEXT")
     private String mensaje;
 
-    @Column(name = "tipo", nullable = false, length = 20)
+    @Column(name = "tipo_notificacion", nullable = false, length = 20)
     private String tipo;
 
     @Builder.Default
-    @Column(name = "leida", nullable = false)
+    @Column(name = "leida_notificacion", nullable = false)
     private Boolean leida = false;
 
-    @Column(name = "fecha_creacion", nullable = false)
+    @Column(name = "fecha_creacion_notificacion", nullable = false)
     private LocalDateTime fechaCreacion;
 
-    @Column(name = "fecha_envio")
+    @Column(name = "fecha_envio_notificacion")
     private LocalDateTime fechaEnvio;
 }

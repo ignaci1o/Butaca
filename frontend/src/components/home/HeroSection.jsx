@@ -39,9 +39,9 @@ function HeroSection({ featuredEvent }) {
           </p>
 
           <div className="hero-badges">
-            <span>🎵 {featuredEvent.categoria}</span>
-            <span>📍 {featuredEvent.ciudad}</span>
-            <span>💰 Desde {formatPrice(featuredEvent.precioMinimo)}</span>
+            <span>{featuredEvent.categoria}</span>
+            <span>{featuredEvent.ciudad}</span>
+            <span>Desde {formatPrice(featuredEvent.precioMinimo)}</span>
           </div>
 
           <div className="hero-actions">
@@ -61,9 +61,9 @@ function HeroSection({ featuredEvent }) {
             <h2>{featuredEvent.nombre}</h2>
             <p>{featuredEvent.artista}</p>
             <ul>
-              <li>📅 {formatDate(featuredEvent.fecha)} — {featuredEvent.hora}hs</li>
-              <li>🏟 {featuredEvent.recinto}</li>
-              <li>🎟 {featuredEvent.disponibilidad} lugares disponibles</li>
+              <li>{formatDate(featuredEvent.fecha)} — {featuredEvent.hora}hs</li>
+              <li>{featuredEvent.recinto}</li>
+              <li>{featuredEvent.disponibilidad} lugares disponibles</li>
             </ul>
           </div>
         </div>

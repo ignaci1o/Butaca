@@ -12,21 +12,29 @@ function EventDetailPage() {
   const [event, setEvent] = useState(null);
   const [selectedTicketId, setSelectedTicketId] = useState("");
   const [quantity, setQuantity] = useState(1);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getEventById(eventId).then((result) => {
-      setEvent(result);
-      if (result?.tiposEntrada?.length) {
-        setSelectedTicketId(result.tiposEntrada[0].id);
-      }
-    });
+    setLoading(true);
+    getEventById(eventId)
+      .then((result) => {
+        setEvent(result);
+        if (result?.tiposEntrada?.length) {
+          setSelectedTicketId(result.tiposEntrada[0].id);
+        }
+      })
+      .finally(() => setLoading(false));
   }, [eventId]);
 
   const selectedTicket = useMemo(() => {
     return event?.tiposEntrada.find((ticket) => ticket.id === selectedTicketId) || null;
   }, [event, selectedTicketId]);
 
-  const lowAvailability = event && event.disponibilidad <= 120;
+  const totalCapacity = event?.cuposTotales || 100;
+  const availableCount = event?.disponibilidad ?? 0;
+  const soldCount = Math.max(0, totalCapacity - availableCount);
+  const occupancyPercentage = Math.round((soldCount / (totalCapacity || 1)) * 100);
+  const lowAvailability = event && availableCount > 0 && availableCount <= 50;
 
   function handleContinue() {
     if (!event || !selectedTicket) {
@@ -34,21 +42,41 @@ function EventDetailPage() {
     }
 
     const safeQuantity = Math.min(quantity, event.disponibilidad);
-    const subtotal = selectedTicket.precio * safeQuantity;
-    const serviceFee = Math.round(subtotal * 0.12);
 
     saveSelectedOrder({
       event,
       ticketType: selectedTicket,
       quantity: safeQuantity,
-      total: subtotal + serviceFee
+      total: selectedTicket.precio * safeQuantity
     });
 
     navigate("/checkout");
   }
 
+  function handleQuantityChange(delta) {
+    const max = Math.min(event?.disponibilidad || 6, 6);
+    setQuantity((prev) => Math.max(1, Math.min(max, prev + delta)));
+  }
+
+  if (loading) {
+    return (
+      <section className="container page-block">
+        <div className="skeleton skeleton-card" style={{ height: 450, margin: "40px 0" }} />
+      </section>
+    );
+  }
+
   if (!event) {
-    return <section className="container page-block">Cargando detalle del evento...</section>;
+    return (
+      <section className="container page-block">
+        <div className="empty-state">
+          <p>No se encontró el evento solicitado.</p>
+          <Link to="/buscar" className="pill-link" style={{ marginTop: 12 }}>
+            Explorar otros eventos
+          </Link>
+        </div>
+      </section>
+    );
   }
 
   return (
@@ -57,18 +85,25 @@ function EventDetailPage() {
         <div className="event-hero-panel">
           <img src={event.imagen} alt={event.nombre} className="event-banner" />
           <div className="event-info-card">
-            <p className="section-eyebrow">{event.categoria}</p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <p className="section-eyebrow">{event.categoria}</p>
+              <span className="badge-status badge-success">
+                ● {event.estado || "PUBLICADO"}
+              </span>
+            </div>
+
             <h1>{event.nombre}</h1>
             <p className="event-detail-artist">{event.artista}</p>
 
             <div className="event-detail-meta">
-              <span>{formatDate(event.fecha)}</span>
-              <span>{event.hora}</span>
-              <span>{event.recinto}</span>
-              <span>{event.ciudad}</span>
+              <span>{formatDate(event.fecha)} · {event.hora}hs</span>
+              <span>· {event.recinto}</span>
+              <span>· {event.ciudad}</span>
             </div>
 
-            <p className="event-description">{event.descripcion}</p>
+            <p className="event-description" style={{ lineHeight: 1.65, color: "var(--text-2)" }}>
+              {event.descripcion}
+            </p>
 
             <div className="tag-row">
               {event.etiquetas.map((tag) => (
@@ -78,10 +113,23 @@ function EventDetailPage() {
               ))}
             </div>
 
+            {/* Disponibilidad y Barra de Progreso */}
+            <div className="capacity-tracker" style={{ marginTop: 24 }}>
+              <div className="capacity-info">
+                <span>Disponibilidad</span>
+                <strong>{availableCount} de {totalCapacity} cupos restantes ({occupancyPercentage}% ocupado)</strong>
+              </div>
+              <div className="progress-track">
+                <div
+                  className={`progress-fill ${lowAvailability ? "low" : ""}`}
+                  style={{ width: `${occupancyPercentage}%` }}
+                />
+              </div>
+            </div>
+
             {lowAvailability ? (
               <div className="availability-alert">
-                Quedan pocas entradas para este evento. Conviene usar este bloque para urgencia de
-                compra.
+                Últimos {availableCount} cupos disponibles para este espectáculo.
               </div>
             ) : null}
           </div>
@@ -90,7 +138,11 @@ function EventDetailPage() {
         <div className="ticket-panel">
           <div className="ticket-selector">
             <h2>Selecciona tus entradas</h2>
-            <p>{event.disponibilidad} entradas disponibles.</p>
+            <p style={{ color: "var(--text-2)", fontSize: "0.9rem", margin: "0 0 16px" }}>
+              {availableCount > 0
+                ? `${availableCount} entradas disponibles para venta inmediata.`
+                : "Entradas agotadas para este espectáculo."}
+            </p>
 
             <div className="ticket-options">
               {event.tiposEntrada.map((ticket) => (
@@ -106,21 +158,37 @@ function EventDetailPage() {
               ))}
             </div>
 
-            <label className="quantity-field">
-              Cantidad
-              <select value={quantity} onChange={(event) => setQuantity(Number(event.target.value))}>
-                {Array.from({ length: Math.min(event.disponibilidad, 6) }, (_, index) => index + 1).map((value) => (
-                  <option key={value} value={value}>{value}</option>
-                ))}
-              </select>
-            </label>
+            <div style={{ margin: "20px 0" }}>
+              <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 700, marginBottom: 8, color: "var(--text-2)" }}>
+                Cantidad de entradas
+              </label>
+              <div className="stepper-control">
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  onClick={() => handleQuantityChange(-1)}
+                  disabled={quantity <= 1}
+                >
+                  −
+                </button>
+                <span className="stepper-value">{quantity}</span>
+                <button
+                  type="button"
+                  className="stepper-btn"
+                  onClick={() => handleQuantityChange(1)}
+                  disabled={quantity >= Math.min(availableCount, 6)}
+                >
+                  +
+                </button>
+              </div>
+            </div>
 
-            <div className="detail-actions">
-              <Button onClick={handleContinue} fullWidth disabled={event.disponibilidad <= 0}>
-                Continuar al checkout
+            <div className="detail-actions" style={{ display: "grid", gap: 10, marginTop: 24 }}>
+              <Button onClick={handleContinue} fullWidth disabled={availableCount <= 0}>
+                {availableCount > 0 ? "Continuar al checkout →" : "Entradas Agotadas"}
               </Button>
-              <Link to="/buscar" className="text-link">
-                Seguir explorando
+              <Link to="/buscar" className="text-link" style={{ textAlign: "center" }}>
+                ← Explorar otros eventos
               </Link>
             </div>
           </div>
@@ -133,3 +201,4 @@ function EventDetailPage() {
 }
 
 export default EventDetailPage;
+

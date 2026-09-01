@@ -27,9 +27,6 @@ public class EntradaResponseDTO {
     @JsonProperty("precio_pagado")
     private BigDecimal precioPagado;
 
-    @JsonProperty("fecha_compra")
-    private LocalDateTime fechaCompra;
-
     @JsonProperty("fecha_emision")
     private LocalDateTime fechaEmision;
 

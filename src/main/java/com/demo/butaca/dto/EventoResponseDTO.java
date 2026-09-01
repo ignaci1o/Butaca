@@ -8,7 +8,6 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 
 @Data
@@ -24,12 +23,6 @@ public class EventoResponseDTO {
 
     @JsonProperty("descripcion_evento")
     private String descripcionEvento;
-
-    @JsonProperty("ubicacion_evento")
-    private String ubicacionEvento;
-
-    @JsonProperty("detalles_ubicacion_evento")
-    private String detallesUbicacionEvento;
 
     @JsonProperty("ubicacion_id")
     private Long ubicacionId;
@@ -58,9 +51,6 @@ public class EventoResponseDTO {
     @JsonProperty("cupos_disponibles")
     private Integer cuposDisponibles;
 
-    @JsonProperty("cupos_disponible_evento")
-    private Integer cuposDisponibleEvento;
-
     @JsonProperty("estado_publicacion_evento")
     private String estadoPublicacionEvento;
 
@@ -77,10 +67,4 @@ public class EventoResponseDTO {
     private Long organizadorIdEvento;
 
     private Integer version;
-
-    @JsonProperty("created_at")
-    private LocalDateTime createdAt;
-
-    @JsonProperty("updated_at")
-    private LocalDateTime updatedAt;
 }

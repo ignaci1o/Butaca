@@ -20,10 +20,10 @@ import java.util.List;
 
 @Entity
 @Table(
-        name = "ubicaciones",
+        name = "ubicacion",
         uniqueConstraints = @UniqueConstraint(
-                name = "uk_ubicaciones_nombre_direccion",
-                columnNames = {"nombre_lugar", "direccion"}
+                name = "uk_ubicacion_nombre_direccion",
+                columnNames = {"nombre_ubicacion", "direccion_ubicacion"}
         )
 )
 @Data
@@ -39,17 +39,17 @@ public class Ubicacion extends AuditableEntity {
     @EqualsAndHashCode.Include
     private Long idUbicacion;
 
-    @Column(name = "nombre_lugar", nullable = false, length = 150)
+    @Column(name = "nombre_ubicacion", nullable = false, length = 150)
     private String nombreLugar;
 
-    @Column(name = "direccion", nullable = false, length = 255)
+    @Column(name = "direccion_ubicacion", nullable = false, length = 255)
     private String direccion;
 
-    @Column(name = "capacidad_maxima", nullable = false)
+    @Column(name = "capacidad_maxima_ubicacion", nullable = false)
     private Integer capacidadMaxima;
 
     @Builder.Default
-    @Column(name = "activo", nullable = false)
+    @Column(name = "activa_ubicacion", nullable = false)
     private Boolean activo = true;
 
     @JsonIgnore

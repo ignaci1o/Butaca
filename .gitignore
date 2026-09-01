@@ -5,7 +5,9 @@ frontend/dist/
 .agents/
 .codex/
 .opencode/
+.antigravitycli/
 .mvn/wrapper/maven-wrapper.jar
+.$*.bkp
 !**/src/main/**/target/
 !**/src/test/**/target/
 

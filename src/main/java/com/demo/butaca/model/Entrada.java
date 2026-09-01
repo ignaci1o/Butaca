@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "entradas")
+@Table(name = "entrada")
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor
@@ -33,25 +33,30 @@ public class Entrada extends AuditableEntity {
     @Column(name = "estado_entrada", nullable = false, length = 20)
     private EstadoEntrada estadoEntrada = EstadoEntrada.CONFIRMADA;
 
-    @Column(name = "precio_pagado", nullable = false, precision = 10, scale = 2)
+    @Column(name = "precio_pagado_entrada", nullable = false, precision = 10, scale = 2)
     private BigDecimal precioPagado;
 
-    @Column(name = "fecha_validacion")
+    @Column(name = "fecha_validacion_entrada")
     private LocalDateTime fechaValidacion;
 
-    @Column(name = "fecha_emision", nullable = false)
+    @Column(name = "fecha_emision_entrada", nullable = false)
     private LocalDateTime fechaEmision;
 
+    @Version
+    @Builder.Default
+    @Column(name = "version_entrada", nullable = false)
+    private Integer versionEntrada = 0;
+
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "evento_id", nullable = false)
+    @JoinColumn(name = "id_evento", nullable = false)
     private Evento evento;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "cliente_id", nullable = false)
+    @JoinColumn(name = "id_cliente", nullable = false)
     private Usuario cliente;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "compra_id")
+    @JoinColumn(name = "id_compra")
     private Compra compra;
 
     @PrePersist

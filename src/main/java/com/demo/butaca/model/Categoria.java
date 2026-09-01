@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "categorias", uniqueConstraints = @UniqueConstraint(name = "uk_categorias_nombre", columnNames = "nombre"))
+@Table(name = "categoria", uniqueConstraints = @UniqueConstraint(name = "uk_categoria_nombre", columnNames = "nombre_categoria"))
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor
@@ -32,10 +32,10 @@ public class Categoria extends AuditableEntity {
     @EqualsAndHashCode.Include
     private Long idCategoria;
 
-    @Column(name = "nombre", nullable = false, unique = true, length = 100)
+    @Column(name = "nombre_categoria", nullable = false, unique = true, length = 100)
     private String nombre;
 
-    @Column(name = "descripcion", columnDefinition = "TEXT")
+    @Column(name = "descripcion_categoria", columnDefinition = "TEXT")
     private String descripcion;
 
     @JsonIgnore

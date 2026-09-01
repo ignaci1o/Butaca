@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "eventos")
+@Table(name = "evento")
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor
@@ -40,38 +40,35 @@ public class Evento extends AuditableEntity {
     @Column(name = "hora_evento", nullable = false)
     private LocalTime horaEvento;
 
-    @Column(name = "precio_entrada_evento", nullable = false, precision = 10, scale = 2)
+    @Column(name = "precio_actual_entrada", nullable = false, precision = 10, scale = 2)
     private BigDecimal precioEntradaEvento;
 
-    @Column(name = "cupos_totales_evento", nullable = false)
+    @Column(name = "cupo_total_evento", nullable = false)
     private Integer cuposTotalesEvento;
-
-    @Column(name = "cupos_disponibles_evento", nullable = false)
-    private Integer cuposDisponibleEvento;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
-    @Column(name = "estado_publicacion_evento", nullable = false, length = 20)
+    @Column(name = "estado_evento", nullable = false, length = 20)
     private EstadoEvento estadoPublicacionEvento = EstadoEvento.BORRADOR;
 
     @Version
     @Builder.Default
-    @Column(name = "version", nullable = false)
+    @Column(name = "version_evento", nullable = false)
     private Integer version = 0;
 
-    @Column(name = "imagen_url", columnDefinition = "TEXT")
+    @Column(name = "imagen_url_evento", columnDefinition = "TEXT")
     private String imagenUrl;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "categoria_id")
+    @JoinColumn(name = "id_categoria", nullable = false)
     private Categoria categoria;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ubicacion_id", nullable = false)
+    @JoinColumn(name = "id_ubicacion", nullable = false)
     private Ubicacion ubicacion;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "organizador_id_evento", nullable = false)
+    @JoinColumn(name = "id_organizador", nullable = false)
     private Usuario organizador;
 
     @JsonIgnore

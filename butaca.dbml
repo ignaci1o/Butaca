@@ -1,0 +1,339 @@
+Project butaca {
+  database_type: 'PostgreSQL'
+
+  Note: '''
+  # Butaca - modelo de datos didáctico
+
+  Modelo simple para explicar y aplicar en el proyecto académico Butaca.
+  Permite gestionar usuarios, eventos, ubicaciones, compras, entradas y
+  notificaciones. Se agrega un historial pequeño para conocer los cambios
+  de estado de cada entrada.
+
+  El esquema aplica 3FN y evita guardar valores calculados:
+  - el cupo disponible se calcula desde el cupo total y las entradas vigentes;
+  - la cantidad y el total de una compra se calculan desde sus entradas;
+  - el precio pagado sí se conserva en entrada porque es un dato histórico.
+  '''
+}
+
+Enum estado_usuario {
+  ACTIVO
+  INACTIVO
+  SUSPENDIDO
+}
+
+Enum estado_evento {
+  BORRADOR
+  PUBLICADO
+  CANCELADO
+}
+
+Enum estado_compra {
+  PENDIENTE
+  CONFIRMADA
+  CANCELADA
+}
+
+Enum estado_entrada {
+  CONFIRMADA
+  USADA
+  ANULADA
+}
+
+Table rol {
+  id_rol bigint [pk, increment, note: 'Identificador único del rol.']
+  nombre_rol varchar(20) [not null, unique, note: 'ADMIN, ORGANIZADOR o CLIENTE.']
+  created_at timestamp [not null, default: `now()`, note: 'Auditoría técnica heredada por las entidades JPA.']
+  updated_at timestamp
+
+  checks {
+    `nombre_rol IN ('ADMIN', 'ORGANIZADOR', 'CLIENTE')` [name: 'chk_rol_valido']
+  }
+
+  Note: '''
+  Catálogo de roles del sistema. Separarlo de usuario evita repetir el nombre
+  del rol y escribir valores diferentes para un mismo perfil.
+  '''
+}
+
+Table usuario {
+  id_usuario bigint [pk, increment, note: 'Identificador único del usuario.']
+  id_rol bigint [not null, note: 'Rol asignado al usuario.']
+  nombre_usuario varchar(100) [not null]
+  apellido_usuario varchar(100) [not null]
+  email_usuario varchar(255) [not null, unique]
+  password_hash_usuario varchar(255) [not null, note: 'Contraseña cifrada; nunca se devuelve desde la API.']
+  telefono_usuario varchar(20)
+  estado_usuario estado_usuario [not null, default: 'ACTIVO']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    id_rol [name: 'idx_usuario_rol']
+  }
+
+  Note: '''
+  Guarda clientes, organizadores y administradores. El rol determina qué
+  operaciones puede realizar cada usuario.
+  '''
+}
+
+Table ubicacion {
+  id_ubicacion bigint [pk, increment, note: 'Identificador único del lugar.']
+  nombre_ubicacion varchar(150) [not null]
+  direccion_ubicacion varchar(255) [not null]
+  capacidad_maxima_ubicacion int [not null]
+  activa_ubicacion boolean [not null, default: true]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (nombre_ubicacion, direccion_ubicacion) [unique, name: 'uq_ubicacion_nombre_direccion']
+  }
+
+  checks {
+    `capacidad_maxima_ubicacion > 0` [name: 'chk_ubicacion_capacidad_positiva']
+  }
+
+  Note: '''
+  Representa el lugar físico donde se realiza un evento. Evento guarda solamente
+  la FK de la ubicación y no repite el nombre o la dirección.
+  '''
+}
+
+Table categoria {
+  id_categoria bigint [pk, increment, note: 'Identificador único de la categoría.']
+  nombre_categoria varchar(100) [not null, unique]
+  descripcion_categoria text
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  Note: '''
+  Clasifica eventos, por ejemplo Música, Teatro o Deportes. Una categoría puede
+  utilizarse en muchos eventos.
+  '''
+}
+
+Table evento {
+  id_evento bigint [pk, increment, note: 'Identificador único del evento.']
+  id_organizador bigint [not null, note: 'Usuario ORGANIZADOR responsable.']
+  id_ubicacion bigint [not null, note: 'Lugar donde se realiza el evento.']
+  id_categoria bigint [not null, note: 'Categoría utilizada para clasificar el evento.']
+  titulo_evento varchar(200) [not null]
+  descripcion_evento text
+  fecha_evento date [not null]
+  hora_evento time [not null]
+  precio_actual_entrada decimal(10,2) [not null, note: 'Precio vigente para nuevas compras.']
+  cupo_total_evento int [not null, note: 'Cantidad máxima de entradas que puede emitir el evento.']
+  estado_evento estado_evento [not null, default: 'BORRADOR']
+  imagen_url_evento text
+  version_evento int [not null, default: 0, note: 'Control de concurrencia con @Version.']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    id_organizador [name: 'idx_evento_organizador']
+    id_ubicacion [name: 'idx_evento_ubicacion']
+    id_categoria [name: 'idx_evento_categoria']
+    (estado_evento, fecha_evento) [name: 'idx_evento_estado_fecha']
+  }
+
+  checks {
+    `precio_actual_entrada >= 0` [name: 'chk_evento_precio_no_negativo']
+    `cupo_total_evento > 0` [name: 'chk_evento_cupo_positivo']
+    `version_evento >= 0` [name: 'chk_evento_version_no_negativa']
+  }
+
+  Note: '''
+  Publicación creada por un organizador. Los clientes sólo pueden ver eventos
+  PUBLICADO que todavía tengan cupo. El cupo disponible no se guarda: se obtiene
+  restando del cupo total las entradas CONFIRMADA o USADA.
+  '''
+}
+
+Table compra {
+  id_compra bigint [pk, increment, note: 'Identificador único de la operación.']
+  id_cliente bigint [not null, note: 'Usuario que realiza la compra.']
+  fecha_compra timestamp [not null, default: `now()`]
+  estado_compra estado_compra [not null, default: 'PENDIENTE']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (id_cliente, fecha_compra) [name: 'idx_compra_cliente_fecha']
+  }
+
+  Note: '''
+  Cabecera de la operación. No contiene evento, cantidad ni total para evitar
+  inconsistencias: esos datos se obtienen consultando las entradas de la compra.
+  '''
+}
+
+Table entrada {
+  id_entrada bigint [pk, increment, note: 'Identificador interno del ticket.']
+  codigo_unico_entrada uuid [not null, unique, default: `gen_random_uuid()`, note: 'Código que identifica el ticket y se utiliza para validarlo.']
+  id_evento bigint [not null]
+  id_cliente bigint [not null, note: 'Usuario dueño de la entrada.']
+  id_compra bigint [note: 'Puede ser nulo para una entrada de cortesía.']
+  estado_entrada estado_entrada [not null, default: 'CONFIRMADA']
+  precio_pagado_entrada decimal(10,2) [not null, note: 'Precio histórico al momento de emitir el ticket.']
+  fecha_emision_entrada timestamp [not null, default: `now()`]
+  fecha_validacion_entrada timestamp [note: 'Momento del primer uso; nulo mientras no fue utilizada.']
+  version_entrada int [not null, default: 0, note: 'Evita validar dos veces el mismo ticket en simultáneo.']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (id_evento, estado_entrada) [name: 'idx_entrada_evento_estado']
+    (id_cliente, estado_entrada) [name: 'idx_entrada_cliente_estado']
+    id_compra [name: 'idx_entrada_compra']
+  }
+
+  checks {
+    `precio_pagado_entrada >= 0` [name: 'chk_entrada_precio_no_negativo']
+    `((estado_entrada = 'USADA' AND fecha_validacion_entrada IS NOT NULL) OR (estado_entrada <> 'USADA' AND fecha_validacion_entrada IS NULL))` [name: 'chk_entrada_validacion_coherente']
+    `version_entrada >= 0` [name: 'chk_entrada_version_no_negativa']
+  }
+
+  Note: '''
+  Cada fila es un ticket individual. Una compra de tres tickets crea tres entradas
+  con códigos diferentes. El precio se congela aquí para que una modificación del
+  evento no cambie compras anteriores.
+  '''
+}
+
+Table historial_estado_entrada {
+  id_historial_entrada bigint [pk, increment]
+  id_entrada bigint [not null]
+  estado_anterior_entrada estado_entrada
+  estado_nuevo_entrada estado_entrada [not null]
+  id_usuario_responsable bigint [note: 'Usuario que realizó el cambio; puede ser nulo si fue automático.']
+  motivo_cambio_entrada varchar(300)
+  fecha_cambio_entrada timestamp [not null, default: `now()`]
+
+  indexes {
+    (id_entrada, fecha_cambio_entrada) [name: 'idx_historial_entrada_fecha']
+  }
+
+  checks {
+    `estado_anterior_entrada IS NULL OR estado_anterior_entrada <> estado_nuevo_entrada` [name: 'chk_historial_entrada_cambio_real']
+  }
+
+  Note: '''
+  Trazabilidad sencilla del ticket. Registra cuándo fue emitido, usado o anulado.
+  El estado actual se consulta en entrada y el historial explica cómo llegó allí.
+  '''
+}
+
+Table notificacion {
+  id_notificacion bigint [pk, increment]
+  id_usuario_destinatario bigint [not null]
+  id_evento_relacionado bigint [note: 'Opcional: una notificación general no necesita evento.']
+  mensaje_notificacion text [not null]
+  tipo_notificacion varchar(20) [not null, default: 'INFO']
+  leida_notificacion boolean [not null, default: false]
+  fecha_creacion_notificacion timestamp [not null, default: `now()`]
+  fecha_envio_notificacion timestamp
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (id_usuario_destinatario, fecha_creacion_notificacion) [name: 'idx_notificacion_usuario_fecha']
+    id_evento_relacionado [name: 'idx_notificacion_evento']
+  }
+
+  checks {
+    `fecha_envio_notificacion IS NULL OR fecha_envio_notificacion >= fecha_creacion_notificacion` [name: 'chk_notificacion_fecha_envio']
+  }
+
+  Note: '''
+  Mensaje enviado a un usuario, por ejemplo una compra confirmada o la cancelación
+  de un evento. La relación con evento es opcional.
+  '''
+}
+
+Ref fk_usuario_rol: usuario.id_rol > rol.id_rol [delete: restrict, update: cascade]
+
+Ref fk_evento_organizador: evento.id_organizador > usuario.id_usuario [delete: restrict, update: cascade]
+Ref fk_evento_ubicacion: evento.id_ubicacion > ubicacion.id_ubicacion [delete: restrict, update: cascade]
+Ref fk_evento_categoria: evento.id_categoria > categoria.id_categoria [delete: restrict, update: cascade]
+
+Ref fk_compra_cliente: compra.id_cliente > usuario.id_usuario [delete: restrict, update: cascade]
+
+Ref fk_entrada_evento: entrada.id_evento > evento.id_evento [delete: restrict, update: cascade]
+Ref fk_entrada_cliente: entrada.id_cliente > usuario.id_usuario [delete: restrict, update: cascade]
+Ref fk_entrada_compra: entrada.id_compra >? compra.id_compra [delete: restrict, update: cascade]
+
+Ref fk_historial_entrada: historial_estado_entrada.id_entrada > entrada.id_entrada [delete: restrict, update: cascade]
+Ref fk_historial_responsable: historial_estado_entrada.id_usuario_responsable >? usuario.id_usuario [delete: restrict, update: cascade]
+
+Ref fk_notificacion_usuario: notificacion.id_usuario_destinatario > usuario.id_usuario [delete: restrict, update: cascade]
+Ref fk_notificacion_evento: notificacion.id_evento_relacionado >? evento.id_evento [delete: set null, update: cascade]
+
+TableGroup usuarios [color: #2563EB] {
+  rol
+  usuario
+}
+
+TableGroup eventos [color: #16A34A] {
+  ubicacion
+  categoria
+  evento
+}
+
+TableGroup ventas [color: #EA580C] {
+  compra
+  entrada
+}
+
+TableGroup seguimiento [color: #7C3AED] {
+  historial_estado_entrada
+  notificacion
+}
+
+Note funcionamiento_sistema {
+  '''
+  ## Funcionamiento de Butaca
+
+  1. Un ORGANIZADOR registra una ubicación y crea un evento.
+  2. El evento comienza como BORRADOR y luego pasa a PUBLICADO.
+  3. Un CLIENTE selecciona el evento y realiza una compra.
+  4. Por cada unidad comprada se crea una entrada con código único.
+  5. Al ingresar, la entrada pasa de CONFIRMADA a USADA y se agrega una fila
+     en historial_estado_entrada.
+  6. Si el evento se cancela, las entradas pueden pasar a ANULADA y los clientes
+     reciben una notificación.
+  '''
+}
+
+Note reglas_importantes {
+  '''
+  ## Reglas de integridad
+
+  - El organizador de un evento debe tener rol ORGANIZADOR o ADMIN.
+  - cupo_total_evento no puede superar capacidad_maxima_ubicacion.
+  - Una entrada CONFIRMADA o USADA ocupa cupo; una ANULADA no.
+  - Si una entrada pertenece a una compra, su cliente debe coincidir con el
+    cliente de esa compra.
+  - Para comprar se bloquea el evento y se controla version_evento antes de emitir.
+  - El cambio de estado y su historial deben guardarse en la misma transacción.
+  - Una ubicación con eventos históricos se desactiva en vez de eliminarse.
+
+  Las reglas que comparan varias tablas se implementan en los servicios de Spring
+  Boot, porque un CHECK SQL sólo puede validar columnas de su propia fila.
+  '''
+}
+
+Note normalizacion {
+  '''
+  ## Aplicación de las tres formas normales
+
+  1FN: todos los campos contienen valores simples y cada ticket tiene su propia fila.
+  2FN: todas las tablas usan una PK y sus atributos dependen de la fila completa.
+  3FN: rol, ubicación y categoría se almacenan una sola vez y se relacionan por FK.
+
+  No se guardan cupos disponibles, cantidad de entradas ni total de compra.
+  entrada funciona además como relación entre compra y evento, resolviendo esa
+  relación sin crear una tabla intermedia vacía.
+  '''
+}

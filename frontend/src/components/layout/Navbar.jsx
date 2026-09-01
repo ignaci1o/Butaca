@@ -2,7 +2,10 @@ import { Link, NavLink } from "react-router-dom";
 
 function Navbar({ currentUser, onLogout }) {
   const initial = currentUser ? currentUser.nombre?.[0]?.toUpperCase() : null;
-  const roleLabel = currentUser ? currentUser.rol.replace("_", " ") : null;
+  const role = currentUser?.rol || "CLIENTE";
+  const roleLabel = role === "ORGANIZADOR" ? "ORGANIZADOR" : "CLIENTE";
+  const dashboardLabel = role === "ORGANIZADOR" ? "Panel" : "Mis Pedidos";
+  const roleBadgeColor = role === "ORGANIZADOR" ? "badge-info" : "badge-success";
 
   return (
     <header className="navbar">
@@ -11,22 +14,21 @@ function Navbar({ currentUser, onLogout }) {
           <span className="brand-mark">B</span>
           <span>
             <strong>Butaca</strong>
-            <small>Entradas en tiempo real</small>
+            <small>Ticketing & Espectáculos</small>
           </span>
         </Link>
 
         <nav className="nav-links">
-          <NavLink to="/">Inicio</NavLink>
-          <NavLink to="/buscar">Buscar</NavLink>
-          <a href="#colecciones">Colecciones</a>
-          <a href="#ayuda">Ayuda</a>
+          <NavLink to="/" end>Inicio</NavLink>
+          <NavLink to="/buscar">Cartelera</NavLink>
+          <Link to="/buscar">Categorías</Link>
         </nav>
 
         <div className="navbar-actions">
           {currentUser ? (
             <>
-              <Link to="/dashboard" className="text-link">
-                Mi Panel
+              <Link to="/dashboard" className="text-link" style={{ fontWeight: 700 }}>
+                {dashboardLabel}
               </Link>
               <div className="account-chip">
                 <div
@@ -41,9 +43,17 @@ function Navbar({ currentUser, onLogout }) {
                 </div>
                 <div>
                   <strong>{currentUser.nombre}</strong>
-                  <small>{roleLabel}</small>
+                  <span className={`badge-status ${roleBadgeColor}`} style={{ fontSize: "0.62rem", padding: "1px 6px" }}>
+                    {roleLabel}
+                  </span>
                 </div>
-                <button className="text-link" type="button" onClick={onLogout}>
+                <button
+                  className="text-link"
+                  type="button"
+                  onClick={onLogout}
+                  style={{ color: "var(--text-3)", fontSize: "0.8rem", padding: "4px 8px" }}
+                  title="Cerrar sesión"
+                >
                   Salir
                 </button>
               </div>
@@ -64,3 +74,4 @@ function Navbar({ currentUser, onLogout }) {
 }
 
 export default Navbar;
+

@@ -3,7 +3,9 @@ package com.demo.butaca.service;
 import com.demo.butaca.dto.EntradaResponseDTO;
 import com.demo.butaca.model.Entrada;
 import com.demo.butaca.model.EstadoEntrada;
+import com.demo.butaca.model.HistorialEstadoEntrada;
 import com.demo.butaca.repository.EntradaRepository;
+import com.demo.butaca.repository.HistorialEstadoEntradaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,9 +17,12 @@ import java.util.UUID;
 public class EntradaService {
 
     private final EntradaRepository entradaRepository;
+    private final HistorialEstadoEntradaRepository historialRepository;
 
-    public EntradaService(EntradaRepository entradaRepository) {
+    public EntradaService(EntradaRepository entradaRepository,
+                           HistorialEstadoEntradaRepository historialRepository) {
         this.entradaRepository = entradaRepository;
+        this.historialRepository = historialRepository;
     }
 
     @Transactional(readOnly = true)
@@ -36,9 +41,19 @@ public class EntradaService {
             throw new IllegalStateException("La entrada no esta en estado CONFIRMADA");
         }
 
+        LocalDateTime fechaValidacion = LocalDateTime.now();
         entrada.setEstadoEntrada(EstadoEntrada.USADA);
-        entrada.setFechaValidacion(LocalDateTime.now());
-        return toDTO(entradaRepository.save(entrada));
+        entrada.setFechaValidacion(fechaValidacion);
+        entrada = entradaRepository.save(entrada);
+
+        historialRepository.save(HistorialEstadoEntrada.builder()
+                .entrada(entrada)
+                .estadoAnteriorEntrada(EstadoEntrada.CONFIRMADA)
+                .estadoNuevoEntrada(EstadoEntrada.USADA)
+                .motivoCambioEntrada("Validacion de acceso")
+                .fechaCambioEntrada(fechaValidacion)
+                .build());
+        return toDTO(entrada);
     }
 
     @Transactional(readOnly = true)
@@ -62,7 +77,6 @@ public class EntradaService {
                 .codigoUnicoEntrada(entrada.getCodigoUnicoEntrada())
                 .estadoEntrada(entrada.getEstadoEntrada().name())
                 .precioPagado(entrada.getPrecioPagado())
-                .fechaCompra(entrada.getFechaEmision())
                 .fechaEmision(entrada.getFechaEmision())
                 .fechaValidacion(entrada.getFechaValidacion())
                 .eventoId(entrada.getEvento() == null ? null : entrada.getEvento().getIdEvento())

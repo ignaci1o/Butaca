@@ -19,7 +19,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "usuarios", uniqueConstraints = @UniqueConstraint(name = "uk_usuarios_email", columnNames = "email_usuario"))
+@Table(name = "usuario", uniqueConstraints = @UniqueConstraint(name = "uk_usuario_email", columnNames = "email_usuario"))
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor
@@ -42,14 +42,14 @@ public class Usuario extends AuditableEntity {
     @Column(name = "email_usuario", nullable = false, unique = true, length = 255)
     private String emailUsuario;
 
-    @Column(name = "password_usuario", nullable = false, length = 255)
+    @Column(name = "password_hash_usuario", nullable = false, length = 255)
     private String passwordUsuario;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "rol_id", nullable = false)
+    @JoinColumn(name = "id_rol", nullable = false)
     private Rol rol;
 
-    @Column(name = "telefono", length = 20)
+    @Column(name = "telefono_usuario", length = 20)
     private String telefono;
 
     @Builder.Default

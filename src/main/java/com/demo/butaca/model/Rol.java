@@ -14,7 +14,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "roles", uniqueConstraints = @UniqueConstraint(name = "uk_roles_nombre", columnNames = "nombre"))
+@Table(name = "rol", uniqueConstraints = @UniqueConstraint(name = "uk_rol_nombre", columnNames = "nombre_rol"))
 @Data
 @EqualsAndHashCode(onlyExplicitlyIncluded = true, callSuper = false)
 @NoArgsConstructor
@@ -28,6 +28,6 @@ public class Rol extends AuditableEntity {
     @EqualsAndHashCode.Include
     private Long id;
 
-    @Column(name = "nombre", nullable = false, length = 50, unique = true)
+    @Column(name = "nombre_rol", nullable = false, length = 20, unique = true)
     private String nombre;
 }

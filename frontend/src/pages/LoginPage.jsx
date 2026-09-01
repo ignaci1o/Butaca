@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Button from "../components/ui/Button";
-import { loginUser, useMockAuth } from "../services/authService";
+import { loginUser } from "../services/authService";
 
 const initialState = {
   email: "",
@@ -27,6 +27,11 @@ function LoginPage({ currentUser, onLogin }) {
     });
   }
 
+  function fillDemoAccount(email, password) {
+    setFormData({ email, password });
+    setError("");
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
@@ -37,7 +42,7 @@ function LoginPage({ currentUser, onLogin }) {
       onLogin(user);
       navigate(user.rol === "CLIENTE" ? "/" : "/dashboard");
     } catch (submissionError) {
-      setError(submissionError.message || "No se pudo iniciar sesion");
+      setError(submissionError.message || "No se pudo iniciar sesión. Verifique sus credenciales.");
     } finally {
       setLoading(false);
     }
@@ -47,69 +52,73 @@ function LoginPage({ currentUser, onLogin }) {
     <section className="container page-block">
       <div className="auth-layout">
         <div className="auth-panel auth-panel-copy">
-          <p className="section-eyebrow">Acceso a cuentas</p>
-          <h1>Ingresa a Butaca con el perfil correcto para probar cada flujo.</h1>
+          <p className="section-eyebrow">Acceso al Sistema</p>
+          <h1>Ingrese a Butaca según el perfil correspondiente.</h1>
           <p className="section-text">
-            Accede al catalogo, a tus entradas o a la gestion de eventos segun el rol de tu cuenta.
+            Acceso a cartelera de espectáculos, compras y gestión operativa.
           </p>
 
           <div className="auth-role-list">
             <div className="auth-role-card">
-              <strong>Administrador</strong>
-              <span>Control general del sistema y supervision operativa.</span>
+              <strong>Cliente</strong>
+              <span>Exploración de eventos, compra y descarga de pases de acceso.</span>
             </div>
             <div className="auth-role-card">
               <strong>Organizador</strong>
-              <span>Creacion de eventos, tipos de entrada y seguimiento basico.</span>
-            </div>
-            <div className="auth-role-card">
-              <strong>Cliente</strong>
-              <span>Exploracion de eventos, reserva y compra de entradas.</span>
+              <span>Gestión de eventos, publicación y control de disponibilidad.</span>
             </div>
           </div>
 
-          {useMockAuth ? (
-            <div className="auth-helper">
-              <strong>Modo demo activo</strong>
-              <span>`organizador@butaca.local`, `cliente@butaca.local` o `admin@butaca.local`</span>
-              <span>Clave: `clave123`</span>
+          <div className="auth-helper">
+            <strong>Cuentas de demostración</strong>
+            <span style={{ margin: "4px 0 8px" }}>Seleccione un perfil para autocompletar credenciales:</span>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              <button
+                type="button"
+                className="btn-copy"
+                onClick={() => fillDemoAccount("cliente@butaca.com", "cliente123")}
+              >
+                Cliente
+              </button>
+              <button
+                type="button"
+                className="btn-copy"
+                onClick={() => fillDemoAccount("org@butaca.com", "org123")}
+              >
+                Organizador
+              </button>
             </div>
-          ) : (
-            <div className="auth-helper">
-              <strong>Cuentas demo</strong>
-              <span>admin@butaca.com, org@butaca.com, cliente@butaca.com.</span>
-            </div>
-          )}
+          </div>
         </div>
 
         <form className="auth-panel auth-form-panel" onSubmit={handleSubmit}>
-          <p className="section-eyebrow">Inicio de sesion</p>
-          <h2>Cuenta Butaca</h2>
+          <p className="section-eyebrow">Autenticación</p>
+          <h2>Iniciar Sesión</h2>
           <p className="section-text">
-            Usa tu correo y contrasena para continuar.
+            Ingrese su correo electrónico y contraseña.
           </p>
 
           <div className="form-grid">
             <label>
-              Correo electronico
+              Correo electrónico
               <input
                 name="email"
                 type="email"
                 value={formData.email}
                 onChange={handleChange}
-                placeholder="tu@email.com"
+                placeholder="usuario@dominio.com"
                 required
               />
             </label>
 
             <label>
-              Contrasena
+              Contraseña
               <input
                 name="password"
                 type="password"
                 value={formData.password}
                 onChange={handleChange}
-                placeholder="Ingresa tu clave"
+                placeholder="••••••••"
                 required
               />
             </label>
@@ -117,10 +126,13 @@ function LoginPage({ currentUser, onLogin }) {
 
           {error ? <div className="auth-error">{error}</div> : null}
 
-          <div className="auth-form-actions">
+          <div className="auth-form-actions" style={{ display: "grid", gap: 12 }}>
             <Button type="submit" fullWidth disabled={loading}>
               {loading ? "Validando..." : "Ingresar"}
             </Button>
+            <div className="auth-switch">
+              ¿No tiene una cuenta? <Link to="/registro">Crear cuenta</Link>
+            </div>
           </div>
         </form>
       </div>

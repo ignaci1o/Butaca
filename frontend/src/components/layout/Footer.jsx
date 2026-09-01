@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 function Footer() {
   return (
     <footer className="footer" id="ayuda">
@@ -5,27 +7,27 @@ function Footer() {
         <div>
           <h3>Butaca</h3>
           <p>
-            Plataforma de venta de entradas para eventos locales.
+            Plataforma académica de gestión y venta simulada de entradas en tiempo real.
           </p>
         </div>
         <div>
-          <h4>Plataforma</h4>
-          <a href="/">Inicio</a>
-          <a href="/buscar">Buscar eventos</a>
-          <a href="#colecciones">Colecciones</a>
+          <h4>Navegación</h4>
+          <Link to="/">Inicio</Link>
+          <Link to="/buscar">Cartelera de espectáculos</Link>
+          <Link to="/buscar">Filtrar por categorías</Link>
         </div>
         <div>
-          <h4>Cuenta</h4>
-          <a href="/login">Ingresar</a>
-          <a href="/registro">Registrarse</a>
-          <a href="/dashboard">Mi panel</a>
+          <h4>Acceso</h4>
+          <Link to="/login">Iniciar sesión</Link>
+          <Link to="/registro">Crear cuenta</Link>
+          <Link to="/dashboard">Panel de usuario</Link>
         </div>
         <div>
-          <h4>API</h4>
-          <p style={{ fontFamily: "monospace", fontSize: "0.78rem", lineHeight: 1.8 }}>
+          <h4>Endpoints REST</h4>
+          <p style={{ fontFamily: "monospace", fontSize: "0.78rem", lineHeight: 1.8, color: "var(--text-3)" }}>
             GET /api/eventos<br />
-            GET /api/admin/ubicaciones<br />
             POST /api/compras<br />
+            GET /api/entradas/usuario/:id<br />
             POST /api/auth/login
           </p>
         </div>
@@ -35,3 +37,4 @@ function Footer() {
 }
 
 export default Footer;
+

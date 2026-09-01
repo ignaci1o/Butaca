@@ -4,33 +4,40 @@ Este repositorio debe mantenerse alineado con `srs_proyecto.md`. Antes de cambia
 
 ## Objetivo Técnico
 
-Butaca es una plataforma academica de gestion y venta/reserva de entradas para eventos. El backend Spring Boot define el dominio relacional y el frontend React consume la API REST bajo `/api`.
+Butaca es una plataforma academica de gestion y venta simulada de entradas para eventos. El backend Spring Boot define el dominio relacional y el frontend React consume la API REST bajo `/api`.
 
 ## Reglas Del Dominio
 
 - Roles validos: `ADMIN`, `ORGANIZADOR`, `CLIENTE`.
 - Estados de evento: `BORRADOR`, `PUBLICADO`, `CANCELADO`.
+- Estados de compra: `PENDIENTE`, `CONFIRMADA`, `CANCELADA`.
 - Estados de entrada: `CONFIRMADA`, `USADA`, `ANULADA`.
 - Los clientes solo deben ver eventos `PUBLICADO` con cupos disponibles.
 - Un evento pertenece a un organizador y a una ubicacion.
 - Una entrada pertenece a un evento, a un cliente y opcionalmente a una compra.
 - Las compras congelan el precio historico en cada entrada mediante `precio_pagado`.
+- Los cupos disponibles, la cantidad de una compra y su total se calculan desde
+  las entradas; no se persisten como columnas.
 - El control de concurrencia de eventos se apoya en `Evento.version` con `@Version`.
+- El uso concurrente de tickets se protege con `Entrada.versionEntrada`.
 
 ## Modelo De Datos
 
 El modelo normalizado vigente usa estas entidades:
 
-- `roles`: catalogo de roles.
-- `usuarios`: credenciales, datos personales, estado de cuenta y rol.
-- `ubicaciones`: lugares fisicos con direccion, capacidad maxima y estado activo.
-- `categorias`: clasificacion de eventos.
-- `eventos`: publicacion, cupos, precio, categoria, ubicacion y organizador.
-- `compras`: cabecera transaccional de la operacion.
-- `entradas`: tickets emitidos con UUID unico y precio historico.
-- `notificaciones`: mensajes internos del MVP.
+- `rol`: catalogo de roles.
+- `usuario`: credenciales, datos personales, estado de cuenta y rol.
+- `ubicacion`: lugares fisicos con direccion, capacidad maxima y estado activo.
+- `categoria`: clasificacion de eventos.
+- `evento`: publicacion, cupo total, precio, categoria, ubicacion y organizador.
+- `compra`: cabecera minima con cliente, fecha y estado.
+- `entrada`: tickets emitidos con UUID unico y precio historico.
+- `historial_estado_entrada`: trazabilidad de emision, uso y anulacion.
+- `notificacion`: mensajes internos del MVP.
 
-No volver a guardar datos de ubicacion como texto duplicado en `eventos` si ya existe `ubicacion_id`. Si se agregan campos derivados, documentar por que no introducen una anomalia de actualizacion.
+No volver a guardar datos de ubicacion como texto duplicado en `evento` si ya
+existe `id_ubicacion`. No reintroducir `cupos_disponibles`, `cantidad`,
+`total` ni `id_evento` en `compra`: esos valores se obtienen desde `entrada`.
 
 ## Backend
 
