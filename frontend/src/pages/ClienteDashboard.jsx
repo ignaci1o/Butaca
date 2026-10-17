@@ -24,7 +24,7 @@ function ClienteDashboard({ currentUser }) {
       <div className="dashboard-header" style={{ marginBottom: 28 }}>
         <div>
           <p className="section-eyebrow">Mi Cuenta</p>
-          <h1>Mis Pedidos</h1>
+          <h1>Mis Entradas</h1>
         </div>
       </div>
 
@@ -64,12 +64,21 @@ function ClienteDashboard({ currentUser }) {
                     {order.evento_titulo}
                   </h3>
                   <div style={{ fontSize: "0.85rem", color: "var(--text-2)", marginTop: 4 }}>
-                    Pedido #{order.id} · {formatDate(order.fecha_compra)}
+                    Compra del {formatDate(order.fecha_compra)}
+                    {order.comprobante ? ` · Comprobante ${order.comprobante.numero_comprobante}` : ""}
                   </div>
+                  {order.pago ? (
+                    <div style={{ fontSize: "0.8rem", color: "var(--text-3)", marginTop: 3 }}>
+                      Medio de pago:{" "}
+                      {order.pago.medio_pago?.includes("TARJETA")
+                        ? `Tarjeta terminada en ${order.pago.ultimos_cuatro_digitos}`
+                        : order.pago.pasarela_pago}
+                    </div>
+                  ) : null}
                 </div>
 
                 <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: "0.8rem", color: "var(--text-2)" }}>Total pagado</div>
+                  <div style={{ fontSize: "0.8rem", color: "var(--text-2)" }}>Total abonado</div>
                   <strong style={{ fontSize: "1.15rem", color: "var(--primary-2)", fontWeight: 800 }}>
                     {formatPrice(order.total)}
                   </strong>
@@ -84,7 +93,10 @@ function ClienteDashboard({ currentUser }) {
                       ticket={entrada}
                       eventTitle={order.evento_titulo}
                       date={order.fecha_compra}
-                      buyerName={currentUser?.nombre ? `${currentUser.nombre} ${currentUser.apellido || ""}`.trim() : "Cliente"}
+                      buyerName={
+                        entrada.nombre_asistente ||
+                        (currentUser?.nombre ? `${currentUser.nombre} ${currentUser.apellido || ""}`.trim() : "Cliente")
+                      }
                     />
                   ))
                 ) : (
@@ -96,7 +108,7 @@ function ClienteDashboard({ currentUser }) {
         </div>
       ) : (
         <div className="empty-state">
-          <p>No tienes compras registradas todavía.</p>
+          <p>Todavía no tenés entradas compradas.</p>
         </div>
       )}
     </section>
@@ -104,3 +116,4 @@ function ClienteDashboard({ currentUser }) {
 }
 
 export default ClienteDashboard;
+

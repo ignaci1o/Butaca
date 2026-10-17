@@ -59,6 +59,12 @@ public class Entrada extends AuditableEntity {
     @JoinColumn(name = "id_compra")
     private Compra compra;
 
+    @Column(name = "dni_asistente_entrada", nullable = false, length = 20)
+    private String dniAsistente;
+
+    @Column(name = "nombre_asistente_entrada", nullable = false, length = 150)
+    private String nombreAsistente;
+
     @PrePersist
     public void prePersistEntrada() {
         if (this.codigoUnicoEntrada == null) {
@@ -66,6 +72,16 @@ public class Entrada extends AuditableEntity {
         }
         if (this.fechaEmision == null) {
             this.fechaEmision = LocalDateTime.now();
+        }
+        if (this.dniAsistente == null || this.dniAsistente.isBlank()) {
+            this.dniAsistente = this.cliente != null && this.cliente.getDniUsuario() != null
+                    ? this.cliente.getDniUsuario()
+                    : "SIN-DNI";
+        }
+        if (this.nombreAsistente == null || this.nombreAsistente.isBlank()) {
+            this.nombreAsistente = this.cliente != null
+                    ? (this.cliente.getNombreUsuario() + " " + this.cliente.getApellidoUsuario()).trim()
+                    : "Titular Nominal";
         }
     }
 }

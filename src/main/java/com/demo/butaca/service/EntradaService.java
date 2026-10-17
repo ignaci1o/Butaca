@@ -18,11 +18,14 @@ public class EntradaService {
 
     private final EntradaRepository entradaRepository;
     private final HistorialEstadoEntradaRepository historialRepository;
+    private final AuditoriaSeguridadService auditoriaService;
 
     public EntradaService(EntradaRepository entradaRepository,
-                           HistorialEstadoEntradaRepository historialRepository) {
+                          HistorialEstadoEntradaRepository historialRepository,
+                          AuditoriaSeguridadService auditoriaService) {
         this.entradaRepository = entradaRepository;
         this.historialRepository = historialRepository;
+        this.auditoriaService = auditoriaService;
     }
 
     @Transactional(readOnly = true)
@@ -50,9 +53,18 @@ public class EntradaService {
                 .entrada(entrada)
                 .estadoAnteriorEntrada(EstadoEntrada.CONFIRMADA)
                 .estadoNuevoEntrada(EstadoEntrada.USADA)
-                .motivoCambioEntrada("Validacion de acceso")
+                .motivoCambioEntrada("Validacion de acceso nominal en puerta (DNI " + entrada.getDniAsistente() + ")")
                 .fechaCambioEntrada(fechaValidacion)
                 .build());
+
+        auditoriaService.registrarEvento(
+                entrada.getCliente(),
+                "VALIDACION_PUERTA",
+                "ENTRADA",
+                entrada.getIdEntrada(),
+                "EXITOSO",
+                "Ticket UUID " + entrada.getCodigoUnicoEntrada() + " validado para asistente DNI " + entrada.getDniAsistente()
+        );
         return toDTO(entrada);
     }
 
@@ -82,6 +94,8 @@ public class EntradaService {
                 .eventoId(entrada.getEvento() == null ? null : entrada.getEvento().getIdEvento())
                 .usuarioId(entrada.getCliente() == null ? null : entrada.getCliente().getIdUsuario())
                 .compraId(entrada.getCompra() == null ? null : entrada.getCompra().getId())
+                .dniAsistente(entrada.getDniAsistente())
+                .nombreAsistente(entrada.getNombreAsistente())
                 .build();
     }
 }

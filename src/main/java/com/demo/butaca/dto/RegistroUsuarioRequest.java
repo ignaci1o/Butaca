@@ -19,6 +19,10 @@ public class RegistroUsuarioRequest {
     @JsonProperty("apellido_usuario")
     private String apellidoUsuario;
 
+    @Size(max = 20)
+    @JsonProperty("dni_usuario")
+    private String dniUsuario;
+
     @NotBlank
     @Email
     @Size(max = 150)

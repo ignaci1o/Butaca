@@ -1,17 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import EventGrid from "../components/events/EventGrid";
 import SectionTitle from "../components/ui/SectionTitle";
 import { categoryOptions as fallbackCategoryOptions } from "../data/mockEvents";
 import { getAllEvents, getCategories } from "../services/eventService";
 
 function SearchPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialCategory = searchParams.get("categoria") || "Todos";
+
   const [events, setEvents] = useState([]);
   const [categories, setCategories] = useState(fallbackCategoryOptions);
   const [searchText, setSearchText] = useState("");
-  const [category, setCategory] = useState("Todos");
+  const [category, setCategory] = useState(initialCategory);
   const [maxPrice, setMaxPrice] = useState(50000);
   const [sortBy, setSortBy] = useState("fecha");
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const paramCat = searchParams.get("categoria");
+    if (paramCat) {
+      setCategory(paramCat);
+    } else {
+      setCategory("Todos");
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     setLoading(true);

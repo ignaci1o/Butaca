@@ -27,6 +27,9 @@ public class UsuarioDTO {
     @JsonProperty("apellido_usuario")
     private String apellidoUsuario;
 
+    @JsonProperty("dni_usuario")
+    private String dniUsuario;
+
     @Email
     @NotBlank
     @JsonProperty("email_usuario")
@@ -42,6 +45,12 @@ public class UsuarioDTO {
 
     @JsonProperty("rol_usuario")
     private String rolUsuario;
+
+    @JsonProperty("identidad_verificada")
+    private Boolean identidadVerificada;
+
+    @JsonProperty("estado_verificacion")
+    private String estadoVerificacion;
 
     @JsonProperty("fecha_registro")
     private LocalDateTime fechaRegistro;

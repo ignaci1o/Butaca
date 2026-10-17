@@ -40,13 +40,13 @@ function HomePage({ currentUser }) {
 
   return (
     <>
-      <HeroSection featuredEvent={featuredEvent} />
+      <HeroSection featuredEvent={featuredEvent} events={events} />
 
       <section className="container home-section" id="colecciones">
         <SectionTitle
           eyebrow="Explorá la cartelera"
           title="Próximos espectáculos"
-          text="Catálogo en tiempo real con eventos publicados y cupos disponibles."
+          text="Elegí una categoría y asegurá tus entradas digitales al instante."
         />
         <CategoryTabs
           categories={categories}
@@ -66,14 +66,14 @@ function HomePage({ currentUser }) {
 
       <section className="container highlight-strip">
         <div>
-          <p className="section-eyebrow">Plataforma Académica Butaca</p>
-          <h3>Gestión integral de entradas, concurrencia en tiempo real y emisión de tickets con UUID.</h3>
+          <p className="section-eyebrow">Experiencia Butaca</p>
+          <h3>Comprá de forma segura, recibí tus entradas digitales al instante y accedé sin filas con tu código QR.</h3>
         </div>
         <div className="highlight-stats">
-          <span>Control @Version</span>
-          <span>Pases Digitales QR</span>
-          <span>Arquitectura 3FN</span>
-          {currentUser ? <span>Sesión: {currentUser.rol.replace("_", " ")}</span> : null}
+          <span>🔒 Compra 100% Protegida</span>
+          <span>🎟️ Pases Digitales QR</span>
+          <span>🪪 Entradas Nominales sin Reventa</span>
+          <span>💳 Tarjetas y Billeteras Virtuales</span>
         </div>
       </section>
 

@@ -2,17 +2,22 @@ Project butaca {
   database_type: 'PostgreSQL'
 
   Note: '''
-  # Butaca - modelo de datos didáctico
+  # Butaca - Modelo de Datos Relacional en 3FN y Seguridad Informática
 
-  Modelo simple para explicar y aplicar en el proyecto académico Butaca.
-  Permite gestionar usuarios, eventos, ubicaciones, compras, entradas y
-  notificaciones. Se agrega un historial pequeño para conocer los cambios
-  de estado de cada entrada.
+  Modelo relacional normalizado en Tercera Forma Normal (3FN) y Forma Normal de
+  Boyce-Codd (BCNF) para el proyecto académico Butaca.
+  Gestiona usuarios, verificación de identidad (KYC), eventos, ubicaciones,
+  categorías, compras, pasarela de pagos (PCI-DSS), comprobantes con cruce
+  criptográfico, entradas nominales, historial de tickets, notificaciones y
+  auditoría/tracking de seguridad.
 
-  El esquema aplica 3FN y evita guardar valores calculados:
+  El esquema aplica 3FN estricta y evita guardar valores calculados o redundantes:
   - el cupo disponible se calcula desde el cupo total y las entradas vigentes;
-  - la cantidad y el total de una compra se calculan desde sus entradas;
-  - el precio pagado sí se conserva en entrada porque es un dato histórico.
+  - la cantidad y el total de una compra (y de su pago) se calculan desde sus entradas;
+  - el comprobante se vincula directamente al pago aprobado (sin duplicar id_compra ni id_cliente);
+  - la verificación de identidad se vincula al usuario sin repetir su nombre ni DNI;
+  - el precio pagado y los datos nominales del asistente en cada entrada se conservan
+    como hechos históricos inmutables del ticket emitido.
   '''
 }
 
@@ -20,6 +25,18 @@ Enum estado_usuario {
   ACTIVO
   INACTIVO
   SUSPENDIDO
+}
+
+Enum estado_verificacion {
+  PENDIENTE
+  VERIFICADA
+  RECHAZADA
+}
+
+Enum metodo_verificacion {
+  BIOMETRIA_RENAPER
+  DOCUMENTO_DNI
+  OTP_EMAIL
 }
 
 Enum estado_evento {
@@ -32,6 +49,39 @@ Enum estado_compra {
   PENDIENTE
   CONFIRMADA
   CANCELADA
+}
+
+Enum pasarela_pago {
+  MERCADOPAGO
+  STRIPE
+  MODO
+  DEBITO_TOKENIZADO
+}
+
+Enum medio_pago {
+  TARJETA_CREDITO
+  TARJETA_DEBITO
+  TRANSFERENCIA_CVU
+  DINERO_CUENTA
+}
+
+Enum estado_pago {
+  PENDIENTE
+  APROBADO
+  RECHAZADO
+  REEMBOLSADO
+}
+
+Enum tipo_comprobante {
+  RECIBO_DIGITAL
+  FACTURA_B
+  FACTURA_C
+}
+
+Enum estado_envio {
+  PENDIENTE
+  ENVIADO
+  ERROR_ENVIO
 }
 
 Enum estado_entrada {
@@ -52,7 +102,7 @@ Table rol {
 
   Note: '''
   Catálogo de roles del sistema. Separarlo de usuario evita repetir el nombre
-  del rol y escribir valores diferentes para un mismo perfil.
+  del rol y escribir valores diferentes para un mismo perfil (3FN).
   '''
 }
 
@@ -61,8 +111,9 @@ Table usuario {
   id_rol bigint [not null, note: 'Rol asignado al usuario.']
   nombre_usuario varchar(100) [not null]
   apellido_usuario varchar(100) [not null]
+  dni_usuario varchar(20) [unique, note: 'Documento Nacional de Identidad único de la persona titular de la cuenta.']
   email_usuario varchar(255) [not null, unique]
-  password_hash_usuario varchar(255) [not null, note: 'Contraseña cifrada; nunca se devuelve desde la API.']
+  password_hash_usuario varchar(255) [not null, note: 'Contraseña hasheada con BCrypt; nunca se devuelve desde la API.']
   telefono_usuario varchar(20)
   estado_usuario estado_usuario [not null, default: 'ACTIVO']
   created_at timestamp [not null, default: `now()`]
@@ -70,11 +121,35 @@ Table usuario {
 
   indexes {
     id_rol [name: 'idx_usuario_rol']
+    dni_usuario [name: 'idx_usuario_dni']
   }
 
   Note: '''
   Guarda clientes, organizadores y administradores. El rol determina qué
-  operaciones puede realizar cada usuario.
+  operaciones puede realizar cada usuario. El DNI es único por persona.
+  '''
+}
+
+Table verificacion_identidad {
+  id_verificacion bigint [pk, increment, note: 'Identificador único del registro de verificación KYC.']
+  id_usuario bigint [not null, unique, note: 'Usuario cuya identidad se valida antes de habilitar la compra.']
+  metodo_verificacion metodo_verificacion [not null, default: 'BIOMETRIA_RENAPER']
+  estado_verificacion estado_verificacion [not null, default: 'PENDIENTE']
+  codigo_validacion_kyc varchar(100) [not null, unique, note: 'Token/hash devuelto por el proveedor de identidad (sin guardar biometría cruda por Ley 25.326).']
+  observacion_verificacion varchar(255)
+  fecha_solicitud timestamp [not null, default: `now()`]
+  fecha_verificacion timestamp [note: 'Momento en que la identidad quedó VERIFICADA.']
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    (id_usuario, estado_verificacion) [name: 'idx_verificacion_usuario_estado']
+  }
+
+  Note: '''
+  Verifica la identidad del usuario (KYC obligatorio antes de comprar).
+  Cumple 3FN al no duplicar nombre, apellido ni DNI (que residen en usuario) y
+  cumple privacidad informática al almacenar solo el token/hash de validación.
   '''
 }
 
@@ -153,7 +228,7 @@ Table evento {
 
 Table compra {
   id_compra bigint [pk, increment, note: 'Identificador único de la operación.']
-  id_cliente bigint [not null, note: 'Usuario que realiza la compra.']
+  id_cliente bigint [not null, note: 'Usuario verificado que realiza la compra.']
   fecha_compra timestamp [not null, default: `now()`]
   estado_compra estado_compra [not null, default: 'PENDIENTE']
   created_at timestamp [not null, default: `now()`]
@@ -165,27 +240,71 @@ Table compra {
 
   Note: '''
   Cabecera de la operación. No contiene evento, cantidad ni total para evitar
-  inconsistencias: esos datos se obtienen consultando las entradas de la compra.
+  inconsistencias (3FN): esos datos se obtienen consultando las entradas de la compra.
+  '''
+}
+
+Table pago {
+  id_pago bigint [pk, increment, note: 'Identificador único de la transacción de pasarela.']
+  id_compra bigint [not null, note: 'Compra asociada a este intento/operación de pago.']
+  pasarela_pago pasarela_pago [not null, default: 'MERCADOPAGO']
+  medio_pago medio_pago [not null, default: 'TARJETA_CREDITO']
+  estado_pago estado_pago [not null, default: 'APROBADO']
+  referencia_externa_pago varchar(120) [not null, unique, note: 'ID de transacción/token de idempotencia en la pasarela externa.']
+  ultimos_cuatro_digitos varchar(4) [note: 'Cumplimiento PCI-DSS: solo últimos 4 dígitos visibles; jamás se guarda PAN ni CVV.']
+  fecha_pago timestamp [not null, default: `now()`]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  indexes {
+    id_compra [name: 'idx_pago_compra']
+  }
+
+  Note: '''
+  Transacción procesada por la pasarela de pago. Cumple 3FN al no duplicar el monto
+  total ni el id_cliente (se obtienen desde compra y sus entradas) y cumple PCI-DSS
+  al almacenar únicamente tokens y referencias externas sin datos sensibles de tarjeta.
+  '''
+}
+
+Table comprobante {
+  id_comprobante bigint [pk, increment, note: 'Identificador único del comprobante emitido.']
+  id_pago bigint [not null, unique, note: 'Pago aprobado que origina este comprobante (3FN: evita duplicar id_compra e id_cliente).']
+  numero_comprobante varchar(50) [not null, unique, note: 'Número fiscal/operativo único del comprobante.']
+  tipo_comprobante tipo_comprobante [not null, default: 'RECIBO_DIGITAL']
+  hash_cruce_seguridad varchar(64) [not null, unique, note: 'Firma SHA-256 que cruza compra, DNI verificado, pago y UUIDs de entradas emitidas.']
+  estado_envio_comprobante estado_envio [not null, default: 'ENVIADO', note: 'Estado del envío digital de entradas y comprobante al cliente.']
+  fecha_emision_comprobante timestamp [not null, default: `now()`]
+  created_at timestamp [not null, default: `now()`]
+  updated_at timestamp
+
+  Note: '''
+  Resultado del método de cruce de información al comprar: vincula el pago aprobado,
+  el envío de entradas y el hash criptográfico de integridad (SHA-256). Al referenciar
+  a id_pago (UNIQUE), cumple 3FN sin dependencias transitivas hacia compra o usuario.
   '''
 }
 
 Table entrada {
   id_entrada bigint [pk, increment, note: 'Identificador interno del ticket.']
-  codigo_unico_entrada uuid [not null, unique, default: `gen_random_uuid()`, note: 'Código que identifica el ticket y se utiliza para validarlo.']
+  codigo_unico_entrada uuid [not null, unique, default: `gen_random_uuid()`, note: 'Código UUID que identifica el ticket en el QR.']
   id_evento bigint [not null]
-  id_cliente bigint [not null, note: 'Usuario dueño de la entrada.']
+  id_cliente bigint [not null, note: 'Usuario titular en cuenta que administra la entrada.']
   id_compra bigint [note: 'Puede ser nulo para una entrada de cortesía.']
+  dni_asistente_entrada varchar(20) [not null, note: 'Documento nominal del asistente que ingresará físicamente al evento.']
+  nombre_asistente_entrada varchar(150) [not null, note: 'Nombre y apellido nominal impreso en el ticket al momento de emisión.']
   estado_entrada estado_entrada [not null, default: 'CONFIRMADA']
-  precio_pagado_entrada decimal(10,2) [not null, note: 'Precio histórico al momento de emitir el ticket.']
+  precio_pagado_entrada decimal(10,2) [not null, note: 'Precio histórico congelado al momento de emitir el ticket.']
   fecha_emision_entrada timestamp [not null, default: `now()`]
-  fecha_validacion_entrada timestamp [note: 'Momento del primer uso; nulo mientras no fue utilizada.']
-  version_entrada int [not null, default: 0, note: 'Evita validar dos veces el mismo ticket en simultáneo.']
+  fecha_validacion_entrada timestamp [note: 'Momento del primer uso en puerta; nulo mientras no fue utilizada.']
+  version_entrada int [not null, default: 0, note: 'Evita validar dos veces el mismo ticket en simultáneo (@Version).']
   created_at timestamp [not null, default: `now()`]
   updated_at timestamp
 
   indexes {
     (id_evento, estado_entrada) [name: 'idx_entrada_evento_estado']
     (id_cliente, estado_entrada) [name: 'idx_entrada_cliente_estado']
+    (id_evento, dni_asistente_entrada) [name: 'idx_entrada_evento_dni_nominal']
     id_compra [name: 'idx_entrada_compra']
   }
 
@@ -196,9 +315,9 @@ Table entrada {
   }
 
   Note: '''
-  Cada fila es un ticket individual. Una compra de tres tickets crea tres entradas
-  con códigos diferentes. El precio se congela aquí para que una modificación del
-  evento no cambie compras anteriores.
+  Cada fila es un ticket individual y NOMINAL. Permite que un comprador verificado
+  adquiera varias entradas asignando el DNI y nombre de cada asistente real, evitando
+  la reventa y permitiendo verificar QR + DNI físico en puerta.
   '''
 }
 
@@ -220,8 +339,8 @@ Table historial_estado_entrada {
   }
 
   Note: '''
-  Trazabilidad sencilla del ticket. Registra cuándo fue emitido, usado o anulado.
-  El estado actual se consulta en entrada y el historial explica cómo llegó allí.
+  Trazabilidad específica del ciclo de vida del ticket. Registra cuándo fue emitido,
+  validado en puerta o anulado.
   '''
 }
 
@@ -247,18 +366,43 @@ Table notificacion {
   }
 
   Note: '''
-  Mensaje enviado a un usuario, por ejemplo una compra confirmada o la cancelación
-  de un evento. La relación con evento es opcional.
+  Mensaje enviado a un usuario (ej. confirmación de cruce de compra, envío de
+  comprobante y entradas, verificación KYC o cancelación de evento).
+  '''
+}
+
+Table auditoria_seguridad {
+  id_auditoria bigint [pk, increment, note: 'Identificador único del evento de tracking.']
+  id_usuario bigint [note: 'Usuario que ejecutó la acción; nulo en intentos anónimos fallidos.']
+  accion_auditoria varchar(50) [not null, note: 'LOGIN, REGISTRO, VERIFICACION_KYC, CRUCE_COMPRA, PAGO_PASARELA, VALIDACION_PUERTA.']
+  entidad_afectada varchar(50) [not null, note: 'Tabla/entidad sobre la que impactó la acción.']
+  id_registro_afectado bigint [note: 'ID de la fila afectada en la entidad correspondiente.']
+  resultado_auditoria varchar(20) [not null, default: 'EXITOSO', note: 'EXITOSO, RECHAZADO o BLOQUEADO.']
+  ip_origen varchar(45) [note: 'Dirección IPv4/IPv6 para análisis antifraude y seguridad informática.']
+  detalle_tracking varchar(500) [not null, note: 'Descripción trazable sin exponer datos sensibles.']
+  fecha_auditoria timestamp [not null, default: `now()`]
+
+  indexes {
+    (id_usuario, fecha_auditoria) [name: 'idx_auditoria_usuario_fecha']
+    (accion_auditoria, fecha_auditoria) [name: 'idx_auditoria_accion_fecha']
+  }
+
+  Note: '''
+  Bitácora inmutable (append-only) para trackear datos operativos y de seguridad
+  informática (cumplimiento OWASP Logging & Monitoring / ISO 27001).
   '''
 }
 
 Ref fk_usuario_rol: usuario.id_rol > rol.id_rol [delete: restrict, update: cascade]
+Ref fk_verificacion_usuario: verificacion_identidad.id_usuario - usuario.id_usuario [delete: restrict, update: cascade]
 
 Ref fk_evento_organizador: evento.id_organizador > usuario.id_usuario [delete: restrict, update: cascade]
 Ref fk_evento_ubicacion: evento.id_ubicacion > ubicacion.id_ubicacion [delete: restrict, update: cascade]
 Ref fk_evento_categoria: evento.id_categoria > categoria.id_categoria [delete: restrict, update: cascade]
 
 Ref fk_compra_cliente: compra.id_cliente > usuario.id_usuario [delete: restrict, update: cascade]
+Ref fk_pago_compra: pago.id_compra > compra.id_compra [delete: restrict, update: cascade]
+Ref fk_comprobante_pago: comprobante.id_pago - pago.id_pago [delete: restrict, update: cascade]
 
 Ref fk_entrada_evento: entrada.id_evento > evento.id_evento [delete: restrict, update: cascade]
 Ref fk_entrada_cliente: entrada.id_cliente > usuario.id_usuario [delete: restrict, update: cascade]
@@ -270,70 +414,29 @@ Ref fk_historial_responsable: historial_estado_entrada.id_usuario_responsable >?
 Ref fk_notificacion_usuario: notificacion.id_usuario_destinatario > usuario.id_usuario [delete: restrict, update: cascade]
 Ref fk_notificacion_evento: notificacion.id_evento_relacionado >? evento.id_evento [delete: set null, update: cascade]
 
-TableGroup usuarios [color: #2563EB] {
+Ref fk_auditoria_usuario: auditoria_seguridad.id_usuario >? usuario.id_usuario [delete: set null, update: cascade]
+
+TableGroup identidad_y_usuarios [color: #2563EB] {
   rol
   usuario
+  verificacion_identidad
 }
 
-TableGroup eventos [color: #16A34A] {
+TableGroup catalogo_eventos [color: #16A34A] {
   ubicacion
   categoria
   evento
 }
 
-TableGroup ventas [color: #EA580C] {
+TableGroup ventas_pagos_y_entradas [color: #EA580C] {
   compra
+  pago
+  comprobante
   entrada
 }
 
-TableGroup seguimiento [color: #7C3AED] {
+TableGroup trazabilidad_y_seguridad [color: #7C3AED] {
   historial_estado_entrada
   notificacion
-}
-
-Note funcionamiento_sistema {
-  '''
-  ## Funcionamiento de Butaca
-
-  1. Un ORGANIZADOR registra una ubicación y crea un evento.
-  2. El evento comienza como BORRADOR y luego pasa a PUBLICADO.
-  3. Un CLIENTE selecciona el evento y realiza una compra.
-  4. Por cada unidad comprada se crea una entrada con código único.
-  5. Al ingresar, la entrada pasa de CONFIRMADA a USADA y se agrega una fila
-     en historial_estado_entrada.
-  6. Si el evento se cancela, las entradas pueden pasar a ANULADA y los clientes
-     reciben una notificación.
-  '''
-}
-
-Note reglas_importantes {
-  '''
-  ## Reglas de integridad
-
-  - El organizador de un evento debe tener rol ORGANIZADOR o ADMIN.
-  - cupo_total_evento no puede superar capacidad_maxima_ubicacion.
-  - Una entrada CONFIRMADA o USADA ocupa cupo; una ANULADA no.
-  - Si una entrada pertenece a una compra, su cliente debe coincidir con el
-    cliente de esa compra.
-  - Para comprar se bloquea el evento y se controla version_evento antes de emitir.
-  - El cambio de estado y su historial deben guardarse en la misma transacción.
-  - Una ubicación con eventos históricos se desactiva en vez de eliminarse.
-
-  Las reglas que comparan varias tablas se implementan en los servicios de Spring
-  Boot, porque un CHECK SQL sólo puede validar columnas de su propia fila.
-  '''
-}
-
-Note normalizacion {
-  '''
-  ## Aplicación de las tres formas normales
-
-  1FN: todos los campos contienen valores simples y cada ticket tiene su propia fila.
-  2FN: todas las tablas usan una PK y sus atributos dependen de la fila completa.
-  3FN: rol, ubicación y categoría se almacenan una sola vez y se relacionan por FK.
-
-  No se guardan cupos disponibles, cantidad de entradas ni total de compra.
-  entrada funciona además como relación entre compra y evento, resolviendo esa
-  relación sin crear una tabla intermedia vacía.
-  '''
+  auditoria_seguridad
 }

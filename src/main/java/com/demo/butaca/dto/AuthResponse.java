@@ -21,6 +21,9 @@ public class AuthResponse {
     @JsonProperty("apellido_usuario")
     private String apellidoUsuario;
 
+    @JsonProperty("dni_usuario")
+    private String dniUsuario;
+
     @JsonProperty("email_usuario")
     private String emailUsuario;
 
@@ -31,6 +34,12 @@ public class AuthResponse {
 
     @JsonProperty("estado_usuario")
     private EstadoUsuario estadoUsuario;
+
+    @JsonProperty("identidad_verificada")
+    private Boolean identidadVerificada;
+
+    @JsonProperty("estado_verificacion")
+    private String estadoVerificacion;
 
     private String mensaje;
 }

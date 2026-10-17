@@ -7,25 +7,34 @@ const mockUsers = [
     id: 1,
     nombre: "Leandro",
     apellido: "Gramajo Gargiulo",
+    dni: "33444555",
     email: "organizador@butaca.local",
     password: "clave123",
-    rol: "ORGANIZADOR"
+    rol: "ORGANIZADOR",
+    identidad_verificada: true,
+    estado_verificacion: "VERIFICADA"
   },
   {
     id: 2,
     nombre: "Mariano",
     apellido: "Piovesan",
+    dni: "42850123",
     email: "cliente@butaca.local",
     password: "clave123",
-    rol: "CLIENTE"
+    rol: "CLIENTE",
+    identidad_verificada: true,
+    estado_verificacion: "VERIFICADA"
   },
   {
     id: 3,
     nombre: "Santiago",
     apellido: "Gonzalez",
+    dni: "30111222",
     email: "admin@butaca.local",
     password: "clave123",
-    rol: "ADMIN"
+    rol: "ADMIN",
+    identidad_verificada: true,
+    estado_verificacion: "VERIFICADA"
   }
 ];
 
@@ -41,14 +50,7 @@ export async function loginUser(credentials) {
       throw new Error("Credenciales invalidas");
     }
 
-    return {
-      id: user.id,
-      nombre: user.nombre,
-      apellido: user.apellido,
-      email: user.email,
-      rol: user.rol,
-      mensaje: "Inicio de sesion correcto"
-    };
+    return normalizeAuthUser(user);
   }
 
   const payload = {
@@ -71,6 +73,7 @@ export async function registerUser(userData) {
   const payload = {
     nombre_usuario: userData.nombre_usuario || userData.nombre,
     apellido_usuario: userData.apellido_usuario || userData.apellido,
+    dni_usuario: userData.dni_usuario || userData.dni || "",
     email_usuario: userData.email_usuario || userData.email,
     password_usuario: userData.password_usuario || userData.password,
     rol_usuario: normalizeRole(userData.rol_usuario || userData.rol || "CLIENTE"),
@@ -84,6 +87,24 @@ export async function registerUser(userData) {
   return normalizeAuthUser(response);
 }
 
+export async function verifyUserIdentity({ usuarioId, emailUsuario, nombreUsuario, apellidoUsuario, dniUsuario, metodoVerificacion }) {
+  return request("/verificaciones", {
+    method: "POST",
+    body: JSON.stringify({
+      usuario_id: usuarioId,
+      email_usuario: emailUsuario || "",
+      nombre_usuario: nombreUsuario || "",
+      apellido_usuario: apellidoUsuario || "",
+      dni_usuario: dniUsuario,
+      metodo_verificacion: metodoVerificacion || "BIOMETRIA_RENAPER"
+    })
+  });
+}
+
+export async function getUserVerificationStatus(usuarioId) {
+  return request(`/verificaciones/usuario/${usuarioId}`);
+}
+
 export function normalizeRole(role) {
   const normalized = String(role || "CLIENTE").trim().toUpperCase();
   return normalized === "CLIENT" ? "CLIENTE" : normalized;
@@ -91,14 +112,22 @@ export function normalizeRole(role) {
 
 export function normalizeAuthUser(user) {
   const rol = normalizeRole(user.rol_usuario || user.rolUsuario || user.rol);
+  const dni = user.dni_usuario ?? user.dniUsuario ?? user.dni ?? "";
+  const identidadVerificada = Boolean(user.identidad_verificada ?? user.identidadVerificada ?? false);
+  const estadoVerificacion = user.estado_verificacion ?? user.estadoVerificacion ?? (identidadVerificada ? "VERIFICADA" : "PENDIENTE");
+
   return {
     ...user,
     id: user.id_usuario ?? user.idUsuario ?? user.id,
     id_usuario: user.id_usuario ?? user.idUsuario ?? user.id,
     nombre: user.nombre_usuario ?? user.nombreUsuario ?? user.nombre,
     apellido: user.apellido_usuario ?? user.apellidoUsuario ?? user.apellido,
+    dni,
+    dni_usuario: dni,
     email: user.email_usuario ?? user.emailUsuario ?? user.email,
     rol,
-    rol_usuario: rol
+    rol_usuario: rol,
+    identidad_verificada: identidadVerificada,
+    estado_verificacion: estadoVerificacion
   };
 }

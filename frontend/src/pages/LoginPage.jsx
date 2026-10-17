@@ -87,6 +87,13 @@ function LoginPage({ currentUser, onLogin }) {
               >
                 Organizador
               </button>
+              <button
+                type="button"
+                className="btn-copy"
+                onClick={() => fillDemoAccount("admin@butaca.com", "admin123")}
+              >
+                Administrador
+              </button>
             </div>
           </div>
         </div>

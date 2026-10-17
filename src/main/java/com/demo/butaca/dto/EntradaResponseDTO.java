@@ -41,4 +41,10 @@ public class EntradaResponseDTO {
 
     @JsonProperty("compra_id")
     private Long compraId;
+
+    @JsonProperty("dni_asistente")
+    private String dniAsistente;
+
+    @JsonProperty("nombre_asistente")
+    private String nombreAsistente;
 }

@@ -22,16 +22,24 @@ function ConfirmationPage() {
   }
 
   const entradas = confirmation.entradas || [];
+  const pago = confirmation.pago || confirmation.raw?.pago || null;
+  const comprobante = confirmation.comprobante || confirmation.raw?.comprobante || null;
   const compradorEmail = confirmation.comprador?.email || order.comprador?.email || "tu correo";
   const compradorNombre = confirmation.comprador?.nombre || "Cliente";
+
+  const medioLegible =
+    pago?.medio_pago === "TARJETA_CREDITO"
+      ? `Tarjeta terminada en ${pago?.ultimos_cuatro_digitos || "4242"}`
+      : pago?.medio_pago === "TARJETA_DEBITO"
+      ? `Débito terminada en ${pago?.ultimos_cuatro_digitos || "4242"}`
+      : pago?.pasarela_pago || "Billetera virtual";
 
   return (
     <section className="container page-block confirmation-page">
       <div className="confirmation-card">
-        <p className="section-eyebrow" style={{ color: "var(--accent)" }}>Compra Confirmada</p>
-        <h1>Gracias por su compra</h1>
+        <p className="section-eyebrow" style={{ color: "var(--accent)" }}>Compra confirmada</p>
+        <h1>¡Listo! Ya tenés tus entradas</h1>
 
-        {/* Notificación de confirmación */}
         <div
           style={{
             background: "rgba(78, 205, 196, 0.06)",
@@ -39,16 +47,18 @@ function ConfirmationPage() {
             borderRadius: "var(--r-md)",
             padding: "16px 20px",
             margin: "20px auto 28px",
-            maxWidth: 600,
+            maxWidth: 680,
             textAlign: "left",
             fontSize: "0.92rem",
             color: "var(--text)",
             lineHeight: 1.6
           }}
         >
-          <strong>Operación completada con éxito.</strong>
+          <strong>Te enviamos el comprobante y tus entradas por correo electrónico.</strong>
           <div style={{ color: "var(--text-2)", marginTop: 4 }}>
-            El comprobante fue enviado a <strong>{compradorEmail}</strong>. Las entradas también se encuentran guardadas en la sección <strong>Mis Pedidos</strong> de su cuenta.
+            Enviamos una copia de tus entradas y el comprobante N°{" "}
+            <strong>{comprobante?.numero_comprobante || "RECIBO"}</strong> a <strong>{compradorEmail}</strong>.
+            Recordá llevar tu DNI físico el día del evento para el ingreso.
           </div>
         </div>
 
@@ -58,12 +68,12 @@ function ConfirmationPage() {
             <strong>{order.event.nombre}</strong>
           </div>
           <div>
-            <span>Titular</span>
-            <strong>{compradorNombre}</strong>
+            <span>Medio de pago</span>
+            <strong>{medioLegible}</strong>
           </div>
           <div>
-            <span>Lugar</span>
-            <strong>{order.event.recinto || order.event.ciudad}</strong>
+            <span>Comprobante</span>
+            <strong>{comprobante?.numero_comprobante || "Emitido"}</strong>
           </div>
           <div>
             <span>Total abonado</span>
@@ -72,7 +82,7 @@ function ConfirmationPage() {
         </div>
 
         <div style={{ margin: "32px 0", textAlign: "left" }}>
-          <h3 style={{ fontSize: "1.15rem", marginBottom: 16 }}>Entradas Emitidas</h3>
+          <h3 style={{ fontSize: "1.15rem", marginBottom: 16 }}>Tus entradas digitales</h3>
           {entradas.length ? (
             entradas.map((entrada, idx) => (
               <TicketPass
@@ -82,7 +92,7 @@ function ConfirmationPage() {
                 venue={order.event.recinto || order.event.ciudad}
                 date={order.event.fecha}
                 time={order.event.hora}
-                buyerName={compradorNombre}
+                buyerName={entrada.nombre_asistente || compradorNombre}
               />
             ))
           ) : (
@@ -99,7 +109,7 @@ function ConfirmationPage() {
 
         <div className="hero-actions" style={{ justifyContent: "center", gap: 14 }}>
           <Link to="/dashboard">
-            <Button>Ver en Mis Pedidos</Button>
+            <Button>Ir a Mis Entradas</Button>
           </Link>
           <Link to="/">
             <Button variant="secondary">Explorar cartelera</Button>
@@ -111,3 +121,4 @@ function ConfirmationPage() {
 }
 
 export default ConfirmationPage;
+

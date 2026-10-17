@@ -56,24 +56,25 @@ El sistema admite dos perfiles de ejecución:
 2.  **Perfil de Demostración (`demo`):** Diseñado para pruebas y clases rápidas con una base de datos local **H2 en memoria** autoejecutable mediante el script `./scripts/demo.sh`, sin dependencias externas complejas.
 
 ### **2.2 Funciones del Producto**
-*   **Autenticación Uniforme:** Registro e inicio de sesión seguro con contraseñas encriptadas con **BCrypt** y asignación estricta de roles.
+*   **Autenticación Uniforme y Verificación de Identidad (KYC):** Registro e inicio de sesión seguro con contraseñas encriptadas con **BCrypt**, DNI único por usuario y validación de identidad obligatoria (`verificacion_identidad`) antes de habilitar la compra de entradas.
 *   **Gestor de Ubicaciones Físicas:** Registro de establecimientos físicos (`ubicacion`) con control estricto de capacidad máxima para evitar la asignación de eventos que excedan la capacidad logística.
 *   **Ciclo de Vida de Eventos:** Creación de publicaciones en estado `BORRADOR`, publicación abierta al público (`PUBLICADO`) o anulación del espectáculo por fuerza mayor (`CANCELADO`).
-*   **Congelamiento de Precios Históricos:** La compra genera una cabecera mínima (`compra`) y congela el precio pagado real de cada ticket individual (`entrada.precio_pagado_entrada`) en caso de futuros ajustes tarifarios.
-*   **Trazabilidad de Tickets:** Cada emisión, uso o anulación se registra en `historial_estado_entrada`.
-*   **Buzón de Notificaciones Internas:** Envío automático de notificaciones a clientes y organizadores sobre compras exitosas, emisión de tickets o cancelaciones de espectáculos.
+*   **Pasarela de Pago Tokenizada (PCI-DSS) y Comprobante con Cruce SHA-256:** Procesamiento del pago en tabla dedicada (`pago`) almacenando únicamente tokens de idempotencia y últimos 4 dígitos (sin PAN ni CVV), emitiendo un `comprobante` con firma criptográfica SHA-256 que cruza comprador verificado, pago y tickets.
+*   **Entradas Nominales y Congelamiento de Precios Históricos:** La compra genera una cabecera mínima (`compra`), congela el precio pagado real (`entrada.precio_pagado_entrada`) y asigna nominalmente cada ticket al DNI y nombre del asistente real (`dni_asistente_entrada`, `nombre_asistente_entrada`).
+*   **Doble Nivel de Trazabilidad y Tracking de Seguridad:** Cada transición del ticket se registra en `historial_estado_entrada` y toda operación sensible del sistema se audita de forma inmutable en `auditoria_seguridad`.
+*   **Buzón de Notificaciones Internas:** Envío automático de notificaciones a clientes y organizadores sobre verificaciones KYC, envío de comprobantes y entradas nominales o cancelaciones de espectáculos.
 
 ### **2.3 Características de los Usuarios (Actores)**
 
 | Tipo de Usuario | Descripción | Objetivo dentro del Sistema |
 | :--- | :--- | :--- |
-| **Administrador (`ADMIN`)** | Usuario con control de auditoría general. | Administrar el catálogo de categorías y ubicaciones, auditar métricas globales de venta del sistema y gestionar la actividad de cuentas de usuarios. |
-| **Organizador (`ORGANIZADOR`)** | Entidad, productora o emprendedor creador de eventos. | Cargar espectáculos en borradores, publicarlos en ubicaciones activas, validar entradas en puerta y supervisar en tiempo real las métricas de ingresos e inventario. |
-| **Cliente (`CLIENTE`)** | Consumidor o espectador final. | Explorar el catálogo de eventos publicados, comprar entradas de forma segura, recibir notificaciones y visualizar su historial de tickets con códigos UUID. |
+| **Administrador (`ADMIN`)** | Usuario con control de auditoría general. | Administrar el catálogo de categorías y ubicaciones, auditar métricas globales de venta del sistema y supervisar la bitácora de tracking de seguridad (`auditoria_seguridad`). |
+| **Organizador (`ORGANIZADOR`)** | Entidad, productora o emprendedor creador de eventos. | Cargar espectáculos en borradores, publicarlos en ubicaciones activas, validar entradas nominales en puerta (QR + DNI) y supervisar las métricas de ingresos e inventario. |
+| **Cliente (`CLIENTE`)** | Consumidor o espectador final. | Verificar su identidad (KYC), explorar eventos publicados, comprar entradas nominales mediante pasarela tokenizada, recibir su comprobante SHA-256 y visualizar sus tickets con códigos UUID. |
 
 ### **2.4 Restricciones**
 *   **Entorno Local Académico:** El modo demo utiliza H2 en memoria y destruye/recrea los datos en cada reinicio para asegurar un estado semilla limpio (`DataLoader`).
-*   **Pasarela de Pago Simulada:** Por motivos del alcance de este MVP, las transacciones simulan un flujo de pasarela real, deduciendo inventario y consolidando compras inmediatamente sin requerir tokenización de tarjetas de crédito reales.
+*   **Pasarela de Pago Desacoplada bajo PCI-DSS:** Las transacciones registran la operación en `pago` mediante referencias externas tokenizadas y últimos 4 dígitos, prohibiendo almacenar numeración completa de tarjetas (PAN) o códigos CVV en la base de datos.
 *   **Conectividad de Red:** Al ser una arquitectura desacoplada Frontend-Backend, es requisito que el backend exponga la API bajo el puerto `8080` (con fallback de CORS) y el frontend consuma en el puerto `5173`.
 
 ### **2.5 Suposiciones y Dependencias**
@@ -81,9 +82,8 @@ El sistema admite dos perfiles de ejecución:
 *   Se asume que el Administrador y Organizador configuran correctamente la capacidad máxima de las ubicaciones físicas para restringir las compras excesivas.
 
 ### **2.6 Requerimientos Futuros**
-*   Integración de pasarelas de pago del mundo real (Stripe / MercadoPago).
-*   Reservas temporales de cupo durante un proceso de pago real.
-*   Generación de entradas en formato PDF y envío vía correo electrónico SMTP.
+*   Webhooks asincrónicos con pasarelas de pago externas en producción.
+*   Reservas temporales de cupo con TTL en Redis durante el checkout.
 *   Sistema de selección interactiva de asientos / mapa de butacas físicas mediante Canvas.
 
 ---
@@ -92,19 +92,19 @@ El sistema admite dos perfiles de ejecución:
 
 ### **3.1 Requisitos Funcionales**
 
-*   **RF1 (Gestión de Cuentas y Seguridad):** El sistema debe registrar usuarios asignándoles un rol de base (`rol`). Las contraseñas deben almacenarse encriptadas con algoritmos de hashing seguros (BCrypt). No se permiten correos duplicados (`usuario.email_usuario` con restricción `UNIQUE`).
+*   **RF1 (Gestión de Cuentas, Seguridad y Verificación KYC Obligatoria):** El sistema debe registrar usuarios asignándoles un rol (`rol`), email único y DNI único (`usuario.dni_usuario`). Las contraseñas se almacenan con **BCrypt**. Antes de realizar cualquier compra, el usuario debe contar obligatoriamente con identidad verificada (`verificacion_identidad.estado_verificacion = 'VERIFICADA'`).
 *   **RF2 (Ciclo de Vida de Eventos):** Los organizadores pueden cargar eventos en estado `BORRADOR` y luego pasarlos a `PUBLICADO` o `CANCELADO`. Los clientes solo pueden ver eventos que estén en estado `PUBLICADO` y tengan cupos disponibles.
-*   **RF3 (Emisión de Entradas y Códigos Únicos):** Por cada ticket emitido, se debe asociar un identificador único global `UUID` autogenerado (`entrada.codigo_unico_entrada`). Su ciclo de vida (`CONFIRMADA` -> `USADA` o `ANULADA`) se registra en `historial_estado_entrada`.
-*   **RF4 (Control Transaccional de Cupos y Concurrencia):** El sistema debe calcular el cupo disponible contando entradas vigentes dentro de la transacción. Se debe utilizar **Bloqueo Optimista** (`@Version`) en `evento` para impedir la sobreventa cuando varias compras compitan por el último cupo.
+*   **RF3 (Emisión de Entradas Nominales y Códigos Únicos):** Por cada ticket emitido se asocia un `UUID` único (`entrada.codigo_unico_entrada`) y los datos nominales del asistente (`dni_asistente_entrada`, `nombre_asistente_entrada`). Su ciclo de vida (`CONFIRMADA` -> `USADA` o `ANULADA`) se registra en `historial_estado_entrada`.
+*   **RF4 (Cruce Transaccional de Compra, Pasarela de Pago y Comprobante):** El método de compra debe cruzar atómicamente (`@Transactional`) la verificación KYC del comprador, el stock con **Bloqueo Optimista** (`@Version`), la aprobación en la pasarela (`pago`), la emisión de entradas nominales (`entrada`) y la generación del `comprobante` con firma SHA-256 (`hash_cruce_seguridad`) y envío digital (`ENVIADO`).
 *   **RF5 (Gestión de Ubicaciones y Capacidad Logística):** Todo evento debe ocurrir obligatoriamente en una ubicación física registrada. El cupo total jamás podrá exceder la capacidad máxima de la ubicación (`evento.cupo_total_evento` <= `ubicacion.capacidad_maxima_ubicacion`).
-*   **RF6 (Metricas y Consultas del Sistema):** Los organizadores deben visualizar los ingresos totales y los cupos ocupados/disponibles por evento. El Administrador debe visualizar estadísticas acumuladas a nivel global en la plataforma.
+*   **RF6 (Métricas, Consultas y Tracking de Seguridad):** Los organizadores visualizan ingresos y ocupación por evento; el Administrador visualiza estadísticas globales y la bitácora inmutable de tracking (`auditoria_seguridad`).
 
 ### **3.2 Requerimientos No Funcionales**
 
-*   **RNF1 (Seguridad de Datos y Arquitectura Limpia):** La lógica de validaciones y reglas de negocio debe residir estrictamente en la capa de servicios (`services`) del backend, manteniendo los controladores delgados. Los DTOs de respuesta nunca deben exponer contraseñas ni campos sensibles de seguridad.
-*   **RNF2 (Normalización Relacional de Base de Datos):** La persistencia debe realizarse bajo un esquema relacional normalizado en **Tercera Forma Normal (3FN)** compuesto por 9 tablas en singular: `rol`, `usuario`, `ubicacion`, `categoria`, `evento`, `compra`, `entrada`, `historial_estado_entrada` y `notificacion`.
-*   **RNF3 (Usabilidad y Compatibilidad API):** Las respuestas JSON de la API REST del backend deben usar nomenclatura en formato **snake_case** (mediante anotaciones `@JsonProperty`), mientras que el código de Java debe mantener la convención interna de **camelCase**.
-*   **RNF4 (Facilidad de Instalación y Demo):** La aplicación debe contar con un script automatizado (`./scripts/demo.sh`) capaz de arrancar backend, frontend e inicializar datos semilla de prueba de forma transparente con un solo comando.
+*   **RNF1 (Seguridad Informática, PCI-DSS y Ley 25.326):** Ningún DTO expone hashes de contraseña. La tabla `pago` cumple PCI-DSS (sin almacenar PAN ni CVV) y `verificacion_identidad` cumple minimización de datos biométricos almacenando únicamente el token de validación KYC.
+*   **RNF2 (Normalización Relacional de Base de Datos en 3FN):** La persistencia se realiza bajo un esquema relacional normalizado en **Tercera Forma Normal (3FN)** compuesto por 13 tablas en singular: `rol`, `usuario`, `verificacion_identidad`, `ubicacion`, `categoria`, `evento`, `compra`, `pago`, `comprobante`, `entrada`, `historial_estado_entrada`, `notificacion` y `auditoria_seguridad`.
+*   **RNF3 (Usabilidad y Compatibilidad API):** Las respuestas JSON de la API REST del backend usan nomenclatura en formato **snake_case** (mediante anotaciones `@JsonProperty`), mientras que el código de Java mantiene la convención interna de **camelCase**.
+*   **RNF4 (Facilidad de Instalación y Demo):** La aplicación cuenta con un script automatizado (`./scripts/demo.sh`) capaz de arrancar backend, frontend e inicializar datos semilla de prueba de forma transparente con un solo comando.
 
 ---
 

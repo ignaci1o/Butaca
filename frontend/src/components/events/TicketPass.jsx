@@ -5,6 +5,8 @@ import QRCodeImage, { downloadTicketAsImage } from "../ui/QRCodeImage";
 function TicketPass({ ticket, eventTitle, venue, date, time, buyerName }) {
   const [showModal, setShowModal] = useState(false);
   const qrData = ticket.codigo_unico_entrada || ticket.codigoUnicoEntrada || ticket.id || "BUTACA-TICKET";
+  const titularNominal = ticket.nombre_asistente || ticket.nombreAsistente || buyerName || "Titular Nominal";
+  const dniNominal = ticket.dni_asistente || ticket.dniAsistente || "";
 
   function handleDownload() {
     downloadTicketAsImage({
@@ -13,7 +15,7 @@ function TicketPass({ ticket, eventTitle, venue, date, time, buyerName }) {
       venue,
       date: date ? formatDate(date) : "",
       time,
-      buyerName
+      buyerName: dniNominal ? `${titularNominal} (DNI ${dniNominal})` : titularNominal
     });
   }
 
@@ -30,6 +32,11 @@ function TicketPass({ ticket, eventTitle, venue, date, time, buyerName }) {
           <div className="ticket-pass-meta" style={{ marginTop: 4 }}>
             {date ? <span>{formatDate(date)} {time ? `· ${time} hs` : ""}</span> : null}
             {venue ? <span>· {venue}</span> : null}
+          </div>
+
+          <div style={{ marginTop: 6, fontSize: "0.84rem", color: "var(--text-2)" }}>
+            Asistente nominal: <strong>{titularNominal}</strong>
+            {dniNominal ? <> · DNI: <strong>{dniNominal}</strong></> : null}
           </div>
 
           <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 14 }}>
@@ -98,7 +105,7 @@ function TicketPass({ ticket, eventTitle, venue, date, time, buyerName }) {
               border: "1px solid var(--border)",
               borderRadius: "var(--r-lg)",
               padding: "36px 32px",
-              maxWidth: 400,
+              maxWidth: 420,
               width: "100%",
               textAlign: "center",
               position: "relative",
@@ -131,11 +138,15 @@ function TicketPass({ ticket, eventTitle, venue, date, time, buyerName }) {
             </button>
 
             <h3 style={{ margin: "0 0 8px", fontSize: "1.25rem", color: "var(--text)", fontWeight: 700 }}>
-              {eventTitle || "Entrada Oficial"}
+              {eventTitle || "Entrada Oficial Nominal"}
             </h3>
 
-            <p style={{ margin: "0 0 20px", color: "var(--text-2)", fontSize: "0.9rem" }}>
+            <p style={{ margin: "0 0 8px", color: "var(--text-2)", fontSize: "0.9rem" }}>
               {date ? formatDate(date) : ""} {time ? `· ${time} hs` : ""}
+            </p>
+
+            <p style={{ margin: "0 0 20px", color: "var(--text)", fontSize: "0.9rem" }}>
+              Titular: <strong>{titularNominal}</strong> {dniNominal ? `(DNI ${dniNominal})` : ""}
             </p>
 
             <div style={{ display: "inline-block", margin: "0 auto 24px" }}>

@@ -1,27 +1,42 @@
 package com.demo.butaca.config;
 
+import com.demo.butaca.model.AuditoriaSeguridad;
 import com.demo.butaca.model.Categoria;
 import com.demo.butaca.model.Compra;
+import com.demo.butaca.model.Comprobante;
 import com.demo.butaca.model.Entrada;
 import com.demo.butaca.model.EstadoCompra;
 import com.demo.butaca.model.EstadoEntrada;
+import com.demo.butaca.model.EstadoEnvio;
 import com.demo.butaca.model.EstadoEvento;
+import com.demo.butaca.model.EstadoPago;
 import com.demo.butaca.model.EstadoUsuario;
+import com.demo.butaca.model.EstadoVerificacion;
 import com.demo.butaca.model.Evento;
 import com.demo.butaca.model.HistorialEstadoEntrada;
+import com.demo.butaca.model.MedioPago;
+import com.demo.butaca.model.MetodoVerificacion;
 import com.demo.butaca.model.Notificacion;
+import com.demo.butaca.model.Pago;
+import com.demo.butaca.model.PasarelaPago;
 import com.demo.butaca.model.Rol;
+import com.demo.butaca.model.TipoComprobante;
 import com.demo.butaca.model.Ubicacion;
 import com.demo.butaca.model.Usuario;
+import com.demo.butaca.model.VerificacionIdentidad;
+import com.demo.butaca.repository.AuditoriaSeguridadRepository;
 import com.demo.butaca.repository.CategoriaRepository;
 import com.demo.butaca.repository.CompraRepository;
+import com.demo.butaca.repository.ComprobanteRepository;
 import com.demo.butaca.repository.EntradaRepository;
 import com.demo.butaca.repository.EventoRepository;
 import com.demo.butaca.repository.HistorialEstadoEntradaRepository;
 import com.demo.butaca.repository.NotificacionRepository;
+import com.demo.butaca.repository.PagoRepository;
 import com.demo.butaca.repository.RolRepository;
 import com.demo.butaca.repository.UbicacionRepository;
 import com.demo.butaca.repository.UsuarioRepository;
+import com.demo.butaca.repository.VerificacionIdentidadRepository;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -33,17 +48,25 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Configuration
 public class DataLoader {
 
     @Bean
-    CommandLineRunner initDatabase(UsuarioRepository usuarioRepository, EventoRepository eventoRepository,
-                                   RolRepository rolRepository, CategoriaRepository categoriaRepository,
-                                   UbicacionRepository ubicacionRepository, CompraRepository compraRepository,
+    CommandLineRunner initDatabase(UsuarioRepository usuarioRepository,
+                                   EventoRepository eventoRepository,
+                                   RolRepository rolRepository,
+                                   CategoriaRepository categoriaRepository,
+                                   UbicacionRepository ubicacionRepository,
+                                   CompraRepository compraRepository,
                                    EntradaRepository entradaRepository,
                                    HistorialEstadoEntradaRepository historialRepository,
-                                   NotificacionRepository notificacionRepository) {
+                                   NotificacionRepository notificacionRepository,
+                                   VerificacionIdentidadRepository verificacionRepository,
+                                   PagoRepository pagoRepository,
+                                   ComprobanteRepository comprobanteRepository,
+                                   AuditoriaSeguridadRepository auditoriaRepository) {
         return args -> {
             BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
 
@@ -67,76 +90,92 @@ public class DataLoader {
             );
 
             Usuario admin = asegurarUsuario(usuarioRepository, encoder, adminRol, "Admin", "Sistema",
-                    "admin@butaca.com", "admin123", "3810000001");
+                    "30111222", "admin@butaca.com", "admin123", "3810000001");
             Usuario org = asegurarUsuario(usuarioRepository, encoder, organizadorRol, "Productora", "Eventos S.A.",
-                    "org@butaca.com", "org123", "3810000002");
+                    "33444555", "org@butaca.com", "org123", "3810000002");
             Usuario cliente = asegurarUsuario(usuarioRepository, encoder, clienteRol, "Juan", "Perez",
-                    "cliente@butaca.com", "cliente123", "3810000003");
+                    "42850123", "cliente@butaca.com", "cliente123", "3810000003");
             Usuario ana = asegurarUsuario(usuarioRepository, encoder, clienteRol, "Ana", "Gomez",
-                    "ana@butaca.com", "ana123", "3810000004");
+                    "44120987", "ana@butaca.com", "ana123", "3810000004");
+
+            asegurarVerificacionKyc(verificacionRepository, auditoriaRepository, admin, "KYC-REN-ADMIN001");
+            asegurarVerificacionKyc(verificacionRepository, auditoriaRepository, org, "KYC-REN-ORG00002");
+            asegurarVerificacionKyc(verificacionRepository, auditoriaRepository, cliente, "KYC-REN-CLI00003");
+            asegurarVerificacionKyc(verificacionRepository, auditoriaRepository, ana, "KYC-REN-CLI00004");
 
             List<Evento> eventos = new ArrayList<>();
             if (eventoRepository.count() == 0) {
                 eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(0), ubicaciones.get(0), "Concierto de Rock Alternativo",
-                        "Un concierto increible de bandas indie y rock alternativo.",
+                        "Noche eléctrica de bandas indie y rock alternativo en vivo con puesta de luces inmersiva.",
                         LocalDate.now().plusDays(15), LocalTime.of(21, 0), new BigDecimal("15000.00"), 500,
-                        EstadoEvento.PUBLICADO));
+                        EstadoEvento.PUBLICADO,
+                        "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80"));
 
                 eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(3), ubicaciones.get(1), "Festival de Jazz al Aire Libre",
-                        "Jazz toda la tarde en un parque hermoso.",
+                        "Ensambles de jazz contemporáneo, soul y gastronomía al atardecer en el anfiteatro.",
                         LocalDate.now().plusDays(30), LocalTime.of(16, 0), new BigDecimal("8000.00"), 1000,
-                        EstadoEvento.PUBLICADO));
+                        EstadoEvento.PUBLICADO,
+                        "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=1200&q=80"));
 
                 eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(1), ubicaciones.get(2), "Hamlet en Sala Negra",
-                        "Version moderna de un clasico teatral con elenco local.",
+                        "Puesta contemporánea del clásico de Shakespeare con dirección escénica de vanguardia.",
                         LocalDate.now().plusDays(8), LocalTime.of(20, 30), new BigDecimal("12000.00"), 180,
-                        EstadoEvento.PUBLICADO));
+                        EstadoEvento.PUBLICADO,
+                        "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80"));
 
-                eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(2), ubicaciones.get(3), "Final Metropolitana de Basquet",
-                        "Partido final con ubicaciones generales y acceso digital.",
+                eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(2), ubicaciones.get(3), "Final Metropolitana de Básquet",
+                        "Definición del torneo metropolitano en vivo con pantalla 360° y acceso digital por QR.",
                         LocalDate.now().plusDays(22), LocalTime.of(19, 0), new BigDecimal("9500.00"), 900,
-                        EstadoEvento.PUBLICADO));
+                        EstadoEvento.PUBLICADO,
+                        "https://images.unsplash.com/photo-1504450758481-7338eba7524a?auto=format&fit=crop&w=1200&q=80"));
 
-                eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(3), ubicaciones.get(4), "Expo Indie Gaming",
-                        "Muestra de videojuegos independientes, charlas y experiencias interactivas.",
+                eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(3), ubicaciones.get(4), "Expo Indie Gaming & Synthwave",
+                        "Muestra interactiva de estudios independientes, torneos retro y shows de música synthwave.",
                         LocalDate.now().plusDays(45), LocalTime.of(14, 0), new BigDecimal("6000.00"), 700,
-                        EstadoEvento.PUBLICADO));
+                        EstadoEvento.PUBLICADO,
+                        "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80"));
 
-                eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(1), ubicaciones.get(2), "Stand Up de Viernes",
-                        "Evento cargado como borrador para mostrar publicacion desde el panel organizador.",
+                eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(1), ubicaciones.get(2), "Stand Up de Medianoche",
+                        "Ciclo de comedia en vivo con cuatro comediantes invitados en formato íntimo.",
                         LocalDate.now().plusDays(12), LocalTime.of(22, 0), new BigDecimal("7000.00"), 120,
-                        EstadoEvento.BORRADOR));
+                        EstadoEvento.BORRADOR,
+                        "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80"));
 
-                eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(0), ubicaciones.get(0), "Noche Electronica Cancelada",
-                        "Evento cancelado para mostrar el ciclo de vida completo.",
+                eventos.add(crearEventoDemo(eventoRepository, org, categorias.get(0), ubicaciones.get(0), "Noche Electrónica AudioVisual",
+                        "Set internacional de techno melódico y visuales láser.",
                         LocalDate.now().plusDays(18), LocalTime.of(23, 30), new BigDecimal("18000.00"), 500,
-                        EstadoEvento.CANCELADO));
+                        EstadoEvento.CANCELADO,
+                        "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80"));
             } else {
                 eventos.addAll(eventoRepository.findAll());
             }
 
             if (compraRepository.count() == 0 && eventos.size() >= 4) {
                 LocalDateTime ahora = LocalDateTime.now();
-                crearCompraDemo(compraRepository, entradaRepository, historialRepository, eventos.get(0), cliente, 2,
-                        ahora.minusDays(3).withHour(10).withMinute(15));
-                crearCompraDemo(compraRepository, entradaRepository, historialRepository, eventos.get(1), cliente, 1,
-                        ahora.minusDays(1).withHour(17).withMinute(40));
-                crearCompraDemo(compraRepository, entradaRepository, historialRepository, eventos.get(2), ana, 3,
-                        ahora.minusDays(2).withHour(19).withMinute(5));
-                crearCompraDemo(compraRepository, entradaRepository, historialRepository, eventos.get(3), ana, 2,
-                        ahora.minusHours(5));
+                crearCompraDemo(compraRepository, pagoRepository, comprobanteRepository, entradaRepository,
+                        historialRepository, auditoriaRepository, eventos.get(0), cliente, 2,
+                        ahora.minusDays(3).withHour(10).withMinute(15), "PAY-MP-DEMO0001", "BUT-2026-000001");
+                crearCompraDemo(compraRepository, pagoRepository, comprobanteRepository, entradaRepository,
+                        historialRepository, auditoriaRepository, eventos.get(1), cliente, 1,
+                        ahora.minusDays(1).withHour(17).withMinute(40), "PAY-MP-DEMO0002", "BUT-2026-000002");
+                crearCompraDemo(compraRepository, pagoRepository, comprobanteRepository, entradaRepository,
+                        historialRepository, auditoriaRepository, eventos.get(2), ana, 3,
+                        ahora.minusDays(2).withHour(19).withMinute(5), "PAY-ST-DEMO0003", "BUT-2026-000003");
+                crearCompraDemo(compraRepository, pagoRepository, comprobanteRepository, entradaRepository,
+                        historialRepository, auditoriaRepository, eventos.get(3), ana, 2,
+                        ahora.minusHours(5), "PAY-MP-DEMO0004", "BUT-2026-000004");
             }
 
             if (notificacionRepository.count() == 0 && !eventos.isEmpty()) {
                 LocalDateTime ahora = LocalDateTime.now();
                 crearNotificacionDemo(notificacionRepository, cliente, eventos.get(0),
-                        "Compra confirmada para Concierto de Rock Alternativo.", "COMPRA", true, ahora.minusDays(3));
+                        "Compra confirmada y comprobante BUT-2026-000001 enviado para Concierto de Rock Alternativo.", "COMPROBANTE", true, ahora.minusDays(3));
                 crearNotificacionDemo(notificacionRepository, cliente, eventos.get(1),
-                        "Tu entrada para Festival de Jazz al Aire Libre ya esta disponible.", "ENTRADA", false, ahora.minusDays(1));
+                        "Tu entrada nominal (DNI 42850123) para Festival de Jazz al Aire Libre ya esta disponible.", "ENTRADA", false, ahora.minusDays(1));
                 crearNotificacionDemo(notificacionRepository, ana, eventos.get(2),
-                        "Recordatorio: Hamlet en Sala Negra empieza a las 20:30.", "RECORDATORIO", false, ahora.minusHours(8));
+                        "Recordatorio: Hamlet en Sala Negra empieza a las 20:30. Recordá presentar tu DNI físico en puerta.", "RECORDATORIO", false, ahora.minusHours(8));
                 crearNotificacionDemo(notificacionRepository, admin, null,
-                        "Demo inicializada con usuarios, eventos, compras y entradas de prueba.", "SISTEMA", false, ahora.minusMinutes(30));
+                        "Demo inicializada con verificación KYC, pasarela PCI-DSS, comprobantes SHA-256 y tracking de seguridad.", "SISTEMA", false, ahora.minusMinutes(30));
             }
         };
     }
@@ -161,11 +200,12 @@ public class DataLoader {
     }
 
     private Usuario asegurarUsuario(UsuarioRepository usuarioRepository, BCryptPasswordEncoder encoder, Rol rol,
-                                    String nombre, String apellido, String email, String password, String telefono) {
+                                    String nombre, String apellido, String dni, String email, String password, String telefono) {
         return usuarioRepository.findByEmailUsuarioIgnoreCase(email).orElseGet(() -> {
             Usuario usuario = new Usuario();
             usuario.setNombreUsuario(nombre);
             usuario.setApellidoUsuario(apellido);
+            usuario.setDniUsuario(dni);
             usuario.setEmailUsuario(email);
             usuario.setPasswordUsuario(encoder.encode(password));
             usuario.setRol(rol);
@@ -175,9 +215,37 @@ public class DataLoader {
         });
     }
 
+    private void asegurarVerificacionKyc(VerificacionIdentidadRepository verificacionRepository,
+                                         AuditoriaSeguridadRepository auditoriaRepository,
+                                         Usuario usuario, String codigoKyc) {
+        if (verificacionRepository.findByUsuarioIdUsuario(usuario.getIdUsuario()).isEmpty()) {
+            LocalDateTime ahora = LocalDateTime.now().minusDays(5);
+            VerificacionIdentidad verificacion = verificacionRepository.save(VerificacionIdentidad.builder()
+                    .usuario(usuario)
+                    .metodoVerificacion(MetodoVerificacion.BIOMETRIA_RENAPER)
+                    .estadoVerificacion(EstadoVerificacion.VERIFICADA)
+                    .codigoValidacionKyc(codigoKyc)
+                    .observacionVerificacion("Identidad verificada por padrón biométrico RENAPER")
+                    .fechaSolicitud(ahora)
+                    .fechaVerificacion(ahora.plusMinutes(2))
+                    .build());
+
+            auditoriaRepository.save(AuditoriaSeguridad.builder()
+                    .usuario(usuario)
+                    .accionAuditoria("VERIFICACION_KYC")
+                    .entidadAfectada("VERIFICACION_IDENTIDAD")
+                    .idRegistroAfectado(verificacion.getIdVerificacion())
+                    .resultadoAuditoria("EXITOSO")
+                    .ipOrigen("127.0.0.1")
+                    .detalleTracking("Identidad verificada para DNI " + usuario.getDniUsuario() + " (" + codigoKyc + ")")
+                    .fechaAuditoria(ahora.plusMinutes(2))
+                    .build());
+        }
+    }
+
     private Evento crearEventoDemo(EventoRepository eventoRepository, Usuario organizador, Categoria categoria, Ubicacion ubicacion,
                                    String titulo, String descripcion, LocalDate fecha, LocalTime hora,
-                                   BigDecimal precio, int cupos, EstadoEvento estado) {
+                                   BigDecimal precio, int cupos, EstadoEvento estado, String imagenUrl) {
         Evento evento = new Evento();
         evento.setTituloEvento(titulo);
         evento.setDescripcionEvento(descripcion);
@@ -186,15 +254,22 @@ public class DataLoader {
         evento.setPrecioEntradaEvento(precio);
         evento.setCuposTotalesEvento(cupos);
         evento.setEstadoPublicacionEvento(estado);
+        evento.setImagenUrl(imagenUrl);
         evento.setOrganizador(organizador);
         evento.setCategoria(categoria);
         evento.setUbicacion(ubicacion);
         return eventoRepository.save(evento);
     }
 
-    private void crearCompraDemo(CompraRepository compraRepository, EntradaRepository entradaRepository,
-                                 HistorialEstadoEntradaRepository historialRepository, Evento evento, Usuario cliente,
-                                 int cantidad, LocalDateTime fechaCompra) {
+    private void crearCompraDemo(CompraRepository compraRepository,
+                                 PagoRepository pagoRepository,
+                                 ComprobanteRepository comprobanteRepository,
+                                 EntradaRepository entradaRepository,
+                                 HistorialEstadoEntradaRepository historialRepository,
+                                 AuditoriaSeguridadRepository auditoriaRepository,
+                                 Evento evento, Usuario cliente,
+                                 int cantidad, LocalDateTime fechaCompra,
+                                 String refPago, String numComprobante) {
         Compra compra = Compra.builder()
                 .fechaCompra(fechaCompra)
                 .estadoCompra(EstadoCompra.CONFIRMADA)
@@ -202,7 +277,34 @@ public class DataLoader {
                 .build();
         compra = compraRepository.save(compra);
 
+        Pago pago = pagoRepository.save(Pago.builder()
+                .compra(compra)
+                .pasarelaPago(PasarelaPago.MERCADOPAGO)
+                .medioPago(MedioPago.TARJETA_CREDITO)
+                .estadoPago(EstadoPago.APROBADO)
+                .referenciaExternaPago(refPago)
+                .ultimosCuatroDigitos("4242")
+                .fechaPago(fechaCompra)
+                .build());
+
+        comprobanteRepository.save(Comprobante.builder()
+                .pago(pago)
+                .numeroComprobante(numComprobante)
+                .tipoComprobante(TipoComprobante.RECIBO_DIGITAL)
+                .hashCruceSeguridad(UUID.randomUUID().toString().replace("-", "") + UUID.randomUUID().toString().replace("-", ""))
+                .estadoEnvioComprobante(EstadoEnvio.ENVIADO)
+                .fechaEmisionComprobante(fechaCompra)
+                .build());
+
+        String nombreTitular = (cliente.getNombreUsuario() + " " + cliente.getApellidoUsuario()).trim();
         for (int i = 0; i < cantidad; i++) {
+            String dniNominal = i == 0
+                    ? cliente.getDniUsuario()
+                    : String.valueOf(Long.parseLong(cliente.getDniUsuario()) + i);
+            String nombreNominal = i == 0
+                    ? nombreTitular
+                    : nombreTitular + " (Acompañante " + i + ")";
+
             Entrada entrada = Entrada.builder()
                     .estadoEntrada(EstadoEntrada.CONFIRMADA)
                     .precioPagado(evento.getPrecioEntradaEvento())
@@ -210,16 +312,29 @@ public class DataLoader {
                     .evento(evento)
                     .cliente(cliente)
                     .compra(compra)
+                    .dniAsistente(dniNominal)
+                    .nombreAsistente(nombreNominal)
                     .build();
             entrada = entradaRepository.save(entrada);
             historialRepository.save(HistorialEstadoEntrada.builder()
                     .entrada(entrada)
                     .estadoNuevoEntrada(EstadoEntrada.CONFIRMADA)
                     .usuarioResponsable(cliente)
-                    .motivoCambioEntrada("Entrada de demostracion")
+                    .motivoCambioEntrada("Entrada nominal emitida · Comprobante " + numComprobante)
                     .fechaCambioEntrada(fechaCompra)
                     .build());
         }
+
+        auditoriaRepository.save(AuditoriaSeguridad.builder()
+                .usuario(cliente)
+                .accionAuditoria("CRUCE_COMPRA_EXITOSO")
+                .entidadAfectada("COMPRA")
+                .idRegistroAfectado(compra.getId())
+                .resultadoAuditoria("EXITOSO")
+                .ipOrigen("127.0.0.1")
+                .detalleTracking("Cruce de compra #" + compra.getId() + " con pago " + refPago + " y comprobante " + numComprobante)
+                .fechaAuditoria(fechaCompra)
+                .build());
     }
 
     private void crearNotificacionDemo(NotificacionRepository notificacionRepository, Usuario usuario, Evento evento,

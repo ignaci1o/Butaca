@@ -7,29 +7,33 @@ function Footer() {
         <div>
           <h3>Butaca</h3>
           <p>
-            Plataforma académica de gestión y venta simulada de entradas en tiempo real.
+            Tu plataforma de entradas digitales para recitales, teatro y eventos en vivo en toda la Argentina.
           </p>
         </div>
         <div>
           <h4>Navegación</h4>
           <Link to="/">Inicio</Link>
           <Link to="/buscar">Cartelera de espectáculos</Link>
-          <Link to="/buscar">Filtrar por categorías</Link>
+          <Link to="/dashboard">Mis entradas</Link>
         </div>
         <div>
-          <h4>Acceso</h4>
-          <Link to="/login">Iniciar sesión</Link>
-          <Link to="/registro">Crear cuenta</Link>
-          <Link to="/dashboard">Panel de usuario</Link>
+          <h4>Sobre nosotros</h4>
+          <a href="#ayuda">Quiénes somos</a>
+          <a href="#ayuda">Términos y condiciones</a>
+          <a href="#ayuda">Política de privacidad</a>
+          <Link
+            to="/registro?modo=organizacion"
+            style={{ color: "var(--text-3)", fontSize: "0.82rem", marginTop: 4 }}
+          >
+            Sumá tu organización
+          </Link>
         </div>
         <div>
-          <h4>Endpoints REST</h4>
-          <p style={{ fontFamily: "monospace", fontSize: "0.78rem", lineHeight: 1.8, color: "var(--text-3)" }}>
-            GET /api/eventos<br />
-            POST /api/compras<br />
-            GET /api/entradas/usuario/:id<br />
-            POST /api/auth/login
-          </p>
+          <h4>Ayuda</h4>
+          <a href="#ayuda">Centro de ayuda</a>
+          <a href="#ayuda">Entradas nominales y acceso</a>
+          <a href="#ayuda">Medios de pago aceptados</a>
+          <a href="#ayuda">Botón de arrepentimiento</a>
         </div>
       </div>
     </footer>
@@ -37,4 +41,5 @@ function Footer() {
 }
 
 export default Footer;
+
 

@@ -23,21 +23,26 @@ Butaca es una plataforma academica de gestion y venta simulada de entradas para 
 
 ## Modelo De Datos
 
-El modelo normalizado vigente usa estas entidades:
+El modelo normalizado vigente en 3FN usa estas 13 entidades:
 
-- `rol`: catalogo de roles.
-- `usuario`: credenciales, datos personales, estado de cuenta y rol.
+- `rol`: catalogo de roles (`ADMIN`, `ORGANIZADOR`, `CLIENTE`).
+- `usuario`: credenciales, DNI unico, datos personales, estado de cuenta y rol.
+- `verificacion_identidad`: validacion KYC obligatoria antes de comprar (`VERIFICADA`), vinculada a `usuario` sin duplicar DNI ni nombre.
 - `ubicacion`: lugares fisicos con direccion, capacidad maxima y estado activo.
 - `categoria`: clasificacion de eventos.
 - `evento`: publicacion, cupo total, precio, categoria, ubicacion y organizador.
-- `compra`: cabecera minima con cliente, fecha y estado.
-- `entrada`: tickets emitidos con UUID unico y precio historico.
-- `historial_estado_entrada`: trazabilidad de emision, uso y anulacion.
-- `notificacion`: mensajes internos del MVP.
+- `compra`: cabecera minima con cliente verificado, fecha y estado.
+- `pago`: transaccion de pasarela desacoplada cumpliendo PCI-DSS (referencia externa y ultimos 4 digitos, sin PAN ni CVV ni monto duplicado).
+- `comprobante`: recibo/factura vinculada a `pago` con firma SHA-256 de cruce de informacion y estado de envio digital.
+- `entrada`: tickets nominales emitidos con UUID unico, DNI/nombre del asistente y precio historico.
+- `historial_estado_entrada`: trazabilidad de emision, uso nominal en puerta y anulacion.
+- `notificacion`: mensajes internos del sistema.
+- `auditoria_seguridad`: bitacora append-only de tracking de seguridad e informatica.
 
 No volver a guardar datos de ubicacion como texto duplicado en `evento` si ya
 existe `id_ubicacion`. No reintroducir `cupos_disponibles`, `cantidad`,
-`total` ni `id_evento` en `compra`: esos valores se obtienen desde `entrada`.
+`total` ni `id_evento` en `compra` o `pago`: esos valores se obtienen desde `entrada`.
+No duplicar `id_compra` ni `id_cliente` en `comprobante` (se obtienen desde `id_pago`).
 
 ## Backend
 

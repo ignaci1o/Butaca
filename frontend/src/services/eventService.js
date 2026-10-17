@@ -4,7 +4,36 @@ import { request } from "./apiClient";
 export const useMockData = false;
 
 const fallbackImage =
-  "https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?auto=format&fit=crop&w=1200&q=80";
+  "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80";
+
+const categoryImages = {
+  conciertos: "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?auto=format&fit=crop&w=1200&q=80",
+  teatro: "https://images.unsplash.com/photo-1507676184212-d03ab07a01bf?auto=format&fit=crop&w=1200&q=80",
+  deportes: "https://images.unsplash.com/photo-1504450758481-7338eba7524a?auto=format&fit=crop&w=1200&q=80",
+  festivales: "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=1200&q=80"
+};
+
+function resolveEventImage(evento, categoria) {
+  const custom = evento.imagen_url || evento.imagenUrl;
+  if (custom && String(custom).trim().length > 5) {
+    return custom;
+  }
+  const titulo = String(evento.titulo_evento || evento.tituloEvento || "").toLowerCase();
+  if (titulo.includes("gaming") || titulo.includes("expo")) {
+    return "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=1200&q=80";
+  }
+  if (titulo.includes("jazz")) {
+    return "https://images.unsplash.com/photo-1511192336575-5a79af67a629?auto=format&fit=crop&w=1200&q=80";
+  }
+  if (titulo.includes("stand up") || titulo.includes("comedia")) {
+    return "https://images.unsplash.com/photo-1585699324551-f6c309eedeca?auto=format&fit=crop&w=1200&q=80";
+  }
+  if (titulo.includes("electronica") || titulo.includes("techno")) {
+    return "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?auto=format&fit=crop&w=1200&q=80";
+  }
+  const catKey = String(categoria || "").toLowerCase();
+  return categoryImages[catKey] || fallbackImage;
+}
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value);
@@ -41,7 +70,7 @@ export function mapSpringEvent(evento) {
     disponibilidad: cupos,
     cuposTotales: toNumber(evento.cupos_totales_evento ?? evento.cuposTotalesEvento),
     estado: evento.estado_publicacion_evento || evento.estadoPublicacionEvento,
-    imagen: evento.imagen_url || evento.imagenUrl || fallbackImage,
+    imagen: resolveEventImage(evento, categoria),
     descripcion: evento.descripcion_evento || evento.descripcionEvento || "Evento disponible en Butaca.",
     etiquetas: [categoria, evento.estado_publicacion_evento || evento.estadoPublicacionEvento || "Disponible"],
     tiposEntrada: [{ id: "general", nombre: "Entrada general", precio }]
@@ -110,3 +139,33 @@ export async function cancelEvent(eventId) {
 export async function getAdminStats() {
   return request("/admin/dashboard");
 }
+
+export async function getAdminAuditLogs() {
+  return request("/admin/auditoria");
+}
+
+export async function getAdminUsers() {
+  return request("/admin/usuarios");
+}
+
+export async function updateUserRole(userId, rol) {
+  return request(`/admin/usuarios/${userId}/rol?rol=${encodeURIComponent(rol)}`, {
+    method: "PUT"
+  });
+}
+
+export async function getAdminPurchases() {
+  return request("/admin/compras");
+}
+
+export async function validateTicketByCode(codigo) {
+  return request(`/entradas/validar/${encodeURIComponent(codigo.trim())}`);
+}
+
+export async function useTicketById(entradaId) {
+  return request(`/entradas/${entradaId}/usar`, {
+    method: "PUT"
+  });
+}
+
+

@@ -12,3 +12,8 @@ export function getAuthenticatedUser() {
 export function clearAuthenticatedUser() {
   localStorage.removeItem(AUTH_STORAGE_KEY);
 }
+
+export const saveAuthUser = saveAuthenticatedUser;
+export const getAuthUser = getAuthenticatedUser;
+export const clearAuthUser = clearAuthenticatedUser;
+

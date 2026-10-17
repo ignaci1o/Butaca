@@ -1,152 +1,80 @@
-# Guía De Presentación - Butaca
+# Guía de Presentación y Consultas en Vivo — Butaca (13 Tablas)
 
-Esta guía propone una exposición simple de 6 a 8 minutos. La demo usa H2 en
-memoria, por lo que no necesita instalar PostgreSQL.
+Esta guía resume los pasos para iniciar el proyecto y las consultas SQL listas para copiar y pegar en la consola H2 durante la exposición frente al profesor.
 
-## Antes De La Clase
+## 1. Iniciar la Aplicación
 
-```powershell
-.\mvnw.cmd test
-Set-Location frontend
-corepack pnpm install --frozen-lockfile
-corepack pnpm run build
-Set-Location ..
-```
-
-## Iniciar Todo
-
-En Windows:
+En Windows, hacer doble clic en `iniciar-windows.bat` o ejecutar en PowerShell:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\demo.ps1
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=demo"
 ```
 
-En Git Bash, Linux o macOS:
+Abrir en el navegador:
+- **Web App:** `http://localhost:8080`
+- **Consola H2:** `http://localhost:8080/h2-console`
+  - **JDBC URL:** `jdbc:h2:mem:butaca_demo`
+  - **User Name:** `sa`
+  - **Password:** *(vacío)*
 
-```bash
-./scripts/demo.sh
-```
-
-Abrir `http://localhost:5173`. Para cerrar backend y frontend, presionar
-`Ctrl+C` en la terminal.
+### Credenciales Demo Precargadas
 
 | Rol | Email | Password |
 | --- | --- | --- |
-| Administrador | `admin@butaca.com` | `admin123` |
-| Organizador | `org@butaca.com` | `org123` |
-| Cliente | `cliente@butaca.com` | `cliente123` |
+| **Administrador** | `admin@butaca.com` | `admin123` |
+| **Organizador** | `org@butaca.com` | `org123` |
+| **Cliente** | `cliente@butaca.com` | `cliente123` |
 
-## Guion Recomendado
+---
 
-### 1. Qué Resuelve
+## 2. Consultas SQL en Consola H2 para Mostrar las 13 Tablas al Profesor
 
-> Butaca permite publicar eventos, controlar la capacidad de los lugares, realizar
-> compras simuladas y emitir un UUID distinto por cada entrada.
-
-Existen tres roles: administrador, organizador y cliente.
-
-### 2. Arquitectura
-
-```mermaid
-flowchart LR
-    React[React] -->|JSON /api| Controller
-    Controller --> Service[Service: reglas y transacciones]
-    Service --> Repository[JPA Repository]
-    Repository --> DB[(H2 demo o PostgreSQL)]
-```
-
-El frontend nunca accede directamente a la base. Los controladores reciben las
-peticiones y las reglas viven en los servicios.
-
-### 3. Recorrido Del Cliente
-
-1. Iniciar sesión como `cliente@butaca.com`.
-2. Mostrar que el catálogo contiene únicamente eventos publicados con cupo.
-3. Elegir un evento y una cantidad.
-4. Confirmar la compra simulada. No se solicitan datos de tarjeta.
-5. Mostrar los UUID individuales en la confirmación y el panel del cliente.
-
-Explicación técnica:
-
-- `Compra` sólo persiste cliente, fecha y estado.
-- Por cada unidad se crea una fila en `Entrada`.
-- Cantidad y total se calculan desde esas entradas.
-- El precio pagado queda congelado dentro del ticket.
-
-### 4. Recorrido Del Organizador
-
-1. Iniciar sesión como `org@butaca.com`.
-2. Crear un evento seleccionando una ubicación y una categoría existentes.
-3. Guardarlo como borrador y luego publicarlo.
-4. Mostrar ventas, entradas emitidas y cupos calculados.
-5. Cancelar un evento de prueba: sus entradas confirmadas pasan a anuladas y se
-   generan notificaciones.
-
-### 5. Base De Datos Y Trazabilidad
-
-Abrir `http://localhost:8080/h2-console`:
-
-- JDBC URL: `jdbc:h2:mem:butaca_demo`
-- User Name: `sa`
-- Password: vacío
-
-Consultas para la exposición:
-
+### A. Ver Usuarios, Roles y Estado de Verificación KYC (1:1)
 ```sql
-SELECT id_evento, titulo_evento, estado_evento,
-       cupo_total_evento, version_evento
-FROM evento;
-
-SELECT id_compra, id_cliente, fecha_compra, estado_compra
-FROM compra
-ORDER BY fecha_compra DESC;
-
-SELECT id_entrada, codigo_unico_entrada, estado_entrada,
-       precio_pagado_entrada, id_compra
-FROM entrada
-ORDER BY id_entrada DESC;
-
-SELECT id_entrada, estado_anterior_entrada, estado_nuevo_entrada,
-       motivo_cambio_entrada, fecha_cambio_entrada
-FROM historial_estado_entrada
-ORDER BY fecha_cambio_entrada DESC;
+SELECT u.id_usuario, u.nombre_usuario, u.apellido_usuario, u.dni_usuario,
+       r.nombre_rol, v.metodo_verificacion, v.estado_verificacion, v.codigo_validacion_kyc
+FROM usuario u
+JOIN rol r ON r.id_rol = u.id_rol
+LEFT JOIN verificacion_identidad v ON v.id_usuario = u.id_usuario
+ORDER BY u.id_usuario;
 ```
 
-El diagrama editable es [`butaca.dbml`](../butaca.dbml) y la explicación de
-normalización está en [`normalizacion-base-datos.md`](normalizacion-base-datos.md).
+### B. Ver el Cruce Completo de Compra + Pasarela de Pago (PCI-DSS) + Comprobante (SHA-256)
+```sql
+SELECT c.id_compra, u.email_usuario, c.estado_compra,
+       p.pasarela_pago, p.medio_pago, p.estado_pago, p.ultimos_cuatro_digitos, p.referencia_externa_pago,
+       cb.numero_comprobante, cb.estado_envio_entrada, cb.hash_cruce_seguridad
+FROM compra c
+JOIN usuario u ON u.id_usuario = c.id_cliente
+JOIN pago p ON p.id_compra = c.id_compra
+JOIN comprobante cb ON cb.id_compra = c.id_compra
+ORDER BY c.id_compra DESC;
+```
 
-## Respuestas Cortas Para El Profesor
+### C. Ver Entradas Nominales Emitidas (QR + DNI de cada Asistente)
+```sql
+SELECT e.id_entrada, e.codigo_unico_entrada,
+       e.nombre_asistente_entrada, e.dni_asistente_entrada,
+       e.precio_pagado_entrada, e.estado_entrada, ev.titulo_evento
+FROM entrada e
+JOIN evento ev ON ev.id_evento = e.id_evento
+ORDER BY e.id_entrada DESC;
+```
 
-**¿Dónde está la base?**  
-En la demo vive en memoria dentro de Spring Boot. Se recrea al iniciar. En el
-perfil normal se usa PostgreSQL.
+### D. Ver Trackeo en Historial de Estados de Entrada
+```sql
+SELECT h.id_historial_estado_entrada, h.id_entrada,
+       h.estado_anterior_entrada, h.estado_nuevo_entrada,
+       h.motivo_cambio_entrada, h.fecha_cambio_entrada
+FROM historial_estado_entrada h
+ORDER BY h.fecha_cambio_entrada DESC;
+```
 
-**¿Cómo evitan la sobreventa?**  
-Se cuentan las entradas vigentes dentro de una transacción y se bloquea
-optimistamente el evento usando `@Version`. Una operación concurrente pierde y
-hace rollback.
-
-**¿Por qué no guardan cupos disponibles?**  
-Porque se pueden calcular desde el cupo total y los tickets vigentes. Guardarlos
-también produciría dos fuentes de verdad.
-
-**¿Por qué no guardan cantidad y total en compra?**  
-La cantidad es el número de entradas y el total es la suma de sus precios
-históricos. La API los calcula para que el frontend los muestre.
-
-**¿Para qué sirve historial_estado_entrada?**  
-Permite saber cuándo un ticket fue emitido, usado o anulado y evita perder
-trazabilidad al cambiar el estado actual.
-
-**¿Es una pasarela real?**  
-No. El SRS define una compra simulada para el MVP académico; por eso no se capturan
-datos bancarios.
-
-## Plan B
-
-- Si faltan dependencias frontend: ejecutar `corepack pnpm install` en
-  `frontend/`.
-- Si el puerto 8080 está ocupado:
-  `powershell -ExecutionPolicy Bypass -File .\scripts\demo.ps1 -BackendPort 8081`.
-- Si la consola H2 no conecta, comprobar que el backend siga ejecutándose y que la
-  URL sea exactamente `jdbc:h2:mem:butaca_demo`.
+### E. Ver Trackeo en Bitácora Inmutable de Auditoría de Seguridad
+```sql
+SELECT a.id_auditoria, a.accion_auditoria, a.entidad_afectada,
+       a.id_registro_afectado, a.resultado_operacion,
+       a.detalle_cruce, a.fecha_evento_auditoria
+FROM auditoria_seguridad a
+ORDER BY a.fecha_evento_auditoria DESC;
+```

@@ -1,387 +1,320 @@
-# Butaca
+# Butaca — Plataforma de Gestión de Eventos y Venta de Entradas Nominales
 
-Sistema web para gestion de eventos y venta simulada de entradas. El proyecto implementa un backend REST en Spring Boot y un frontend en React, alineados con el SRS local `srs_proyecto.md`.
+Sistema web full-stack (**Spring Boot + React + JPA**) para la gestión de espectáculos, verificación de identidad obligatoria (**KYC**), pasarela de pagos bajo normativa **PCI-DSS**, emisión de **entradas nominales con QR + DNI**, cruce transaccional con firma de integridad **SHA-256** y bitácora de **auditoría de seguridad**.
 
-Material para la exposicion:
+---
 
-- [Guia de presentacion](docs/guia-presentacion.md): guion, recorrido de demo y preguntas frecuentes.
-- [Glosario y explicacion de base de datos](docs/glosario-y-modelo-base-de-datos.md): glosario de tablas, 3FN, concurrencia y preguntas para el profesor.
-- [Modelo y diagrama de base de datos](docs/normalizacion-base-datos.md): normalizacion 3FN, claves y relaciones.
-- [`butaca.dbml`](butaca.dbml): modelo gráfico editable en dbdiagram.io.
+## 📚 Documentación y Diagramas del Proyecto
 
-## Estado Del Proyecto
+- 📊 **Diagrama Entidad-Relación Editable (Draw.io):** [`diagrama Butaca.drawio`](diagrama%20Butaca.drawio) / [`diagrama Butaca.drawio.xml`](diagrama%20Butaca.drawio.xml)
+- 🗂️ **Modelo DBML (dbdiagram.io):** [`butaca.dbml`](butaca.dbml)
+- 📐 **Justificación de 1FN, 2FN, 3FN y Seguridad:** [`docs/normalizacion-base-datos.md`](docs/normalizacion-base-datos.md)
+- 📖 **Glosario de las 13 Tablas y Preguntas de Defensa:** [`docs/glosario-y-modelo-base-de-datos.md`](docs/glosario-y-modelo-base-de-datos.md)
+- 🎤 **Plan de Exposición de 10 Minutos:** [`docs/plan-exposicion-10-minutos.md`](docs/plan-exposicion-10-minutos.md)
+- 🧭 **Guía Rápida de Presentación y Consultas SQL H2:** [`docs/guia-presentacion.md`](docs/guia-presentacion.md)
+- 📋 **Especificación de Requisitos de Software (SRS):** [`srs_proyecto.md`](srs_proyecto.md)
 
-- Backend REST con entidades JPA normalizadas.
-- Frontend React conectado a endpoints reales.
-- Registro e inicio de sesion con roles.
-- Catalogo publico de eventos publicados.
-- Compra de entradas con emision de UUID por ticket.
-- Trazabilidad de emisión, uso y anulación de entradas.
-- Panel de organizador para crear, publicar, cancelar y revisar ventas.
-- Panel de cliente para compras y notificaciones.
-- Panel administrativo con metricas generales, categorias y ubicaciones.
+---
 
-## Arquitectura
+## ✅ Correcciones del Profesor Implementadas
+
+1. **Verificación de Identidad Obligatoria antes de Comprar (`verificacion_identidad`):**
+   - Ningún usuario puede adquirir entradas sin haber validado previamente su identidad (**KYC** mediante validación biométrica/documental simulada con RENAPER).
+   - Cumple con la **Ley 25.326 de Protección de Datos Personales**: no almacena fotos crudas del rostro ni del DNI, sino el estado (`VERIFICADA`), el método empleado y el token de validación (`codigo_validacion_kyc`).
+2. **Pasarela de Pago Integrada al Modelo bajo PCI-DSS (`pago`):**
+   - Modela el procesamiento con pasarelas (`MERCADOPAGO`, `STRIPE`, `MODO`) y medios de pago (`TARJETA_CREDITO`, `TARJETA_DEBITO`, `BILLETERA_VIRTUAL`).
+   - Cumple estrictamente **PCI-DSS**: jamás persiste los 16 dígitos de la tarjeta (PAN) ni el código CVV; únicamente almacena los `ultimos_cuatro_digitos` y el token `referencia_externa_pago`.
+3. **Método Transaccional de Cruce de Información (`CompraService.comprarEntrada`):**
+   - Operación atómica (`@Transactional`) que cruza en tiempo real:
+     1. Identidad `VERIFICADA` del comprador (`verificacion_identidad`).
+     2. Disponibilidad real del espectáculo y control de concurrencia con bloqueo optimista `@Version` (`evento`).
+     3. Aprobación del cobro en la pasarela (`pago`).
+     4. Emisión de tickets nominales individuales (`entrada` + `historial_estado_entrada`).
+     5. Generación del comprobante electrónico con **firma criptográfica SHA-256** (`comprobante`) y envío de confirmación (`notificacion`).
+     6. Registro de auditoría en la bitácora de seguridad (`auditoria_seguridad`).
+4. **Entrada Nominal Óptima (`entrada`):**
+   - Cada ticket individual emitido posee `codigo_unico_entrada` (QR), `nombre_asistente_entrada` y `dni_asistente_entrada`.
+   - Permite que un comprador verificado compre entradas para sí mismo y acompañantes asignando el nombre y DNI real de cada asistente, erradicando la reventa y habilitando el **control en puerta por QR + DNI físico**.
+5. **Trackeo de Datos e Inmutabilidad (`auditoria_seguridad` + `historial_estado_entrada`):**
+   - Bitácora doble *append-only*: `historial_estado_entrada` audita cada cambio de estado de cada ticket (`CONFIRMADA`, `USADA`, `ANULADA`), mientras que `auditoria_seguridad` registra logins, verificaciones KYC, compras aprobadas/bloqueadas, cambios de rol y lecturas en puerta con fecha/hora e IP.
+6. **Separación de Vistas y Permisos por Rol (Principio de Mínimo Privilegio):**
+   - **Registro público:** Solo permite crear cuentas con rol `CLIENTE` (e incluye la solicitud *"Sumá tu organización"* en el pie de página para revisión del administrador).
+   - **Vista Cliente:** Muestra un checkout limpio (validación biométrica RENAPER + tarjeta interactiva) y entradas listas para presentar en puerta, ocultando hashes técnicos internos.
+   - **Vista Organizador:** Incluye validador de acceso en puerta (**Escáner QR + verificación de DNI nominal**) y gestión de eventos propios.
+   - **Vista Administrador:** Permite gestionar usuarios, promover cuentas a `ORGANIZADOR` y auditar la tabla de cruce técnico de compras (`SHA-256`, tokens de pasarela y bitácora de seguridad).
+
+---
+
+## 🗄️ Diagrama Entidad-Relación Completo (13 Tablas en 3FN)
 
 ```mermaid
-flowchart LR
-    U[Usuario en el navegador] -->|interactua| F[React + Vite<br/>puerto 5173]
-    F -->|JSON sobre HTTP<br/>/api| C[Controllers REST<br/>Spring Boot 8080]
-    C --> S[Services<br/>reglas y transacciones]
-    S --> R[Repositories<br/>Spring Data JPA]
-    R -->|Hibernate / JDBC| DB[(PostgreSQL<br/>o H2 en demo)]
+erDiagram
+    ROL ||--o{ USUARIO : "asigna (1:N)"
+    USUARIO ||--o| VERIFICACION_IDENTIDAD : "valida KYC (1:1)"
+    USUARIO ||--o{ AUDITORIA_SEGURIDAD : "es auditado en (1:N)"
+    USUARIO ||--o{ EVENTO : "organiza (1:N)"
+    UBICACION ||--o{ EVENTO : "aloja (1:N)"
+    CATEGORIA ||--o{ EVENTO : "clasifica (1:N)"
+    USUARIO ||--o{ COMPRA : "realiza (1:N)"
+    COMPRA ||--|| PAGO : "procesa en pasarela (1:1)"
+    COMPRA ||--|| COMPROBANTE : "respalda con firma (1:1)"
+    EVENTO ||--o{ ENTRADA : "emite tickets (1:N)"
+    COMPRA ||--o{ ENTRADA : "agrupa tickets nominales (1:N)"
+    ENTRADA ||--o{ HISTORIAL_ESTADO_ENTRADA : "audita estados (1:N)"
+    USUARIO ||--o{ NOTIFICACION : "recibe avisos (1:N)"
+    EVENTO ||--o{ NOTIFICACION : "origina avisos (1:N)"
+
+    ROL {
+        bigint id_rol PK
+        varchar nombre_rol UK "ADMIN | ORGANIZADOR | CLIENTE"
+    }
+
+    USUARIO {
+        bigint id_usuario PK
+        varchar nombre_usuario
+        varchar apellido_usuario
+        varchar email_usuario UK
+        varchar dni_usuario UK
+        varchar password_usuario "Hash BCrypt"
+        varchar telefono_usuario
+        varchar estado_usuario "ACTIVO | INACTIVO | BLOQUEADO"
+        bigint id_rol FK
+    }
+
+    VERIFICACION_IDENTIDAD {
+        bigint id_verificacion PK
+        bigint id_usuario FK, UK "Relacion 1:1 con USUARIO"
+        varchar metodo_verificacion "BIOMETRIA_RENAPER | DOCUMENTO_DNI"
+        varchar estado_verificacion "PENDIENTE | VERIFICADA | RECHAZADA"
+        varchar codigo_validacion_kyc UK
+        varchar observacion_verificacion
+        timestamp fecha_solicitud
+        timestamp fecha_verificacion
+    }
+
+    UBICACION {
+        bigint id_ubicacion PK
+        varchar nombre_ubicacion UK
+        varchar direccion_ubicacion
+        int capacidad_maxima_ubicacion
+        boolean activa_ubicacion
+    }
+
+    CATEGORIA {
+        bigint id_categoria PK
+        varchar nombre_categoria UK
+        varchar descripcion_categoria
+    }
+
+    EVENTO {
+        bigint id_evento PK
+        varchar titulo_evento
+        varchar descripcion_evento
+        timestamp fecha_inicio_evento
+        decimal precio_actual_evento
+        int cupo_total_evento
+        varchar estado_evento "BORRADOR | PUBLICADO | CANCELADO"
+        varchar imagen_url_evento
+        bigint version_evento "Bloqueo Optimista @Version"
+        bigint id_organizador FK
+        bigint id_categoria FK
+        bigint id_ubicacion FK
+    }
+
+    COMPRA {
+        bigint id_compra PK
+        bigint id_cliente FK
+        timestamp fecha_compra
+        varchar estado_compra "PENDIENTE | CONFIRMADA | CANCELADA"
+    }
+
+    PAGO {
+        bigint id_pago PK
+        bigint id_compra FK, UK "Relacion 1:1 con COMPRA"
+        varchar pasarela_pago "MERCADOPAGO | STRIPE | MODO"
+        varchar medio_pago "TARJETA_CREDITO | DEBITO | BILLETERA"
+        varchar estado_pago "APROBADO | RECHAZADO | REEMBOLSADO"
+        varchar referencia_externa_pago UK "Token de Pasarela"
+        varchar ultimos_cuatro_digitos "PCI-DSS (sin CVV ni PAN)"
+        timestamp fecha_pago
+    }
+
+    COMPROBANTE {
+        bigint id_comprobante PK
+        bigint id_compra FK, UK "Relacion 1:1 con COMPRA"
+        varchar numero_comprobante UK "Ej: CMP-20261017-A1B2C3"
+        varchar tipo_comprobante "RECIBO_DIGITAL | FACTURA_B"
+        varchar hash_cruce_seguridad UK "Firma SHA-256 del cruce"
+        varchar estado_envio_entrada "ENVIADO | PENDIENTE | FALLIDO"
+        timestamp fecha_emision_comprobante
+    }
+
+    ENTRADA {
+        bigint id_entrada PK
+        bigint id_evento FK
+        bigint id_compra FK
+        varchar codigo_unico_entrada UK "UUID unico para QR"
+        varchar dni_asistente_entrada "Nominalidad: DNI"
+        varchar nombre_asistente_entrada "Nominalidad: Titular"
+        decimal precio_pagado_entrada "Precio historico congelado"
+        varchar estado_entrada "CONFIRMADA | USADA | ANULADA"
+        timestamp fecha_emision_entrada
+    }
+
+    HISTORIAL_ESTADO_ENTRADA {
+        bigint id_historial_estado_entrada PK
+        bigint id_entrada FK
+        varchar estado_anterior_entrada
+        varchar estado_nuevo_entrada
+        varchar motivo_cambio_entrada
+        timestamp fecha_cambio_entrada
+    }
+
+    NOTIFICACION {
+        bigint id_notificacion PK
+        bigint id_usuario_destino FK
+        bigint id_evento_relacionado FK
+        varchar tipo_notificacion
+        varchar mensaje_notificacion
+        boolean leida_notificacion
+        timestamp fecha_creacion_notificacion
+    }
+
+    AUDITORIA_SEGURIDAD {
+        bigint id_auditoria PK
+        bigint id_usuario FK
+        varchar accion_auditoria "REGISTRO | KYC | CRUCE_COMPRA | VALIDACION_PUERTA"
+        varchar entidad_afectada
+        varchar id_registro_afectado
+        varchar resultado_operacion "EXITOSO | BLOQUEADO | RECHAZADO"
+        varchar ip_origen
+        varchar detalle_cruce
+        timestamp fecha_evento_auditoria
+    }
 ```
 
-El frontend no accede directamente a la base. Siempre llama a la API; los controladores delegan la regla de negocio a servicios y los repositorios traducen las operaciones Java a SQL.
+---
 
-## Modelo De Datos Normalizado
+## 🔄 ¿Cómo interactúa la Página Web con el Diagrama paso a paso?
 
-El modelo vigente usa un diseno relacional en tercera forma normal para el alcance del SRS:
+### 1. Registro de Usuario (`/registro`)
+1. El usuario completa sus datos en la web.
+2. `AuthService` consulta **`ROL`** para asignar obligatoriamente el rol `CLIENTE` (impidiendo escalamiento de privilegios desde el formulario público).
+3. Se persiste el usuario en **`USUARIO`** con su contraseña cifrada mediante `BCrypt`.
+4. Se graba el alta en **`AUDITORIA_SEGURIDAD`** (`accion_auditoria = REGISTRO_USUARIO`).
 
-| Tabla | Responsabilidad |
+### 2. Navegación y Filtro por Categorías (`/` y `/buscar?categoria=...`)
+1. Al abrir el catálogo o usar el menú desplegable **Categorías** del Navbar, el frontend consulta `GET /api/eventos`.
+2. `EventoService` une **`EVENTO`** con **`CATEGORIA`** y **`UBICACION`** (obteniendo dirección y capacidad sin redundancia 3FN) y calcula el cupo disponible restando las filas activas (`CONFIRMADA` y `USADA`) en **`ENTRADA`**.
+
+### 3. Verificación de Identidad Obligatoria KYC (`/checkout/:eventoId` — Paso 1)
+1. Antes de habilitar el pago, el checkout consulta `GET /api/verificacion-identidad/usuario/{id}` sobre **`VERIFICACION_IDENTIDAD`**.
+2. Si el usuario aún no está verificado, completa el asistente biométrico/documental (RENAPER).
+3. `VerificacionIdentidadService` valida que el `dni_usuario` no pertenezca a otra cuenta en **`USUARIO`**, crea o actualiza la fila en **`VERIFICACION_IDENTIDAD`** con `estado_verificacion = VERIFICADA` y `codigo_validacion_kyc`, y registra la validación en **`AUDITORIA_SEGURIDAD`**.
+
+### 4. Método de Cruce de Información al Comprar (`POST /api/compras` — Pasos 2 y 3)
+Al presionar **"FINALIZAR LA COMPRA"**, `CompraService.comprarEntrada()` ejecuta una **única transacción ACID (`@Transactional`)** que recorre **8 tablas**:
+1. **Cruce de Identidad:** Comprueba en **`USUARIO`** y **`VERIFICACION_IDENTIDAD`** que la cuenta esté `ACTIVO` y `VERIFICADA`. Si no cumple, aborta la compra y registra `CRUCE_COMPRA_BLOQUEADO` en **`AUDITORIA_SEGURIDAD`**.
+2. **Cruce de Stock y Concurrencia:** Bloquea optimistamente la fila en **`EVENTO`** (`@Version`) y cuenta en **`ENTRADA`** que existan butacas disponibles.
+3. **Cabecera Comercial:** Inserta la orden en **`COMPRA`** (`estado_compra = CONFIRMADA`).
+4. **Pasarela de Pago (PCI-DSS):** Procesa el cobro y registra en **`PAGO`** la `pasarela_pago`, `medio_pago`, `referencia_externa_pago` y solo los `ultimos_cuatro_digitos` (`estado_pago = APROBADO`).
+5. **Emisión de Entradas Nominales:** Por cada asistente, inserta una fila en **`ENTRADA`** con su `codigo_unico_entrada` (UUID), `nombre_asistente_entrada`, `dni_asistente_entrada` y `precio_pagado_entrada`, y crea su primer registro en **`HISTORIAL_ESTADO_ENTRADA`**.
+6. **Comprobante con Firma SHA-256 y Envío:** Calcula el `hash_cruce_seguridad` (`SHA-256` de compra + cliente + DNI + evento + referencia de pago + monto + fecha), guarda el recibo en **`COMPROBANTE`** con `estado_envio_entrada = ENVIADO` y emite el aviso en **`NOTIFICACION`**.
+7. **Trackeo de Seguridad:** Registra el cruce exitoso en **`AUDITORIA_SEGURIDAD`** (`CRUCE_COMPRA_EXITOSO`).
+
+### 5. Validación en Puerta por el Organizador (`/organizador`)
+1. El organizador ingresa el código QR del ticket y el DNI físico presentado por el asistente en la puerta.
+2. `EntradaService.usarEntrada()` busca el ticket en **`ENTRADA`**, verifica que esté `CONFIRMADA` y **compara el `dni_asistente_entrada` nominal con el DNI presentado**.
+3. Si coinciden, actualiza **`ENTRADA`** a `USADA`, inserta la transición en **`HISTORIAL_ESTADO_ENTRADA`** (`CONFIRMADA -> USADA`) y registra la lectura en **`AUDITORIA_SEGURIDAD`**. Si el DNI no coincide o el QR ya fue utilizado, rechaza el ingreso y audita la anomalía.
+
+---
+
+## 🛡️ Cumplimiento de Formas Normales y Seguridad Informática
+
+| Criterio | Implementación en Butaca |
 | --- | --- |
-| `rol` | Catalogo de permisos: `ADMIN`, `ORGANIZADOR`, `CLIENTE`. |
-| `usuario` | Datos de cuenta, credenciales, telefono, estado y rol. |
-| `ubicacion` | Lugares fisicos con direccion, capacidad maxima y estado activo. |
-| `categoria` | Clasificacion de eventos. |
-| `evento` | Datos publicables, precio, cupo total, estado, version, organizador, categoria y ubicacion. |
-| `compra` | Cabecera minima: cliente, fecha y estado. |
-| `entrada` | Tickets emitidos con UUID unico, estado y precio historico pagado. |
-| `historial_estado_entrada` | Cambios de estado de cada ticket. |
-| `notificacion` | Mensajes internos del MVP. |
+| **1FN (Atómico)** | Cada atributo contiene un único valor atómico. Una compra de $N$ entradas genera $N$ filas independientes en `entrada`, cada una con su propio titular, DNI y QR. |
+| **2FN (Dependencia Funcional Completa)** | Todas las tablas poseen clave primaria simple (`BIGINT`) y sus atributos dependen íntegramente de dicha clave. |
+| **3FN y FNBC (Sin Dependencias Transitivas)** | • `rol`, `categoria` y `ubicacion` están separados en tablas maestras.<br>• `compra` no duplica cantidad ni monto total (se calculan desde `entrada.precio_pagado_entrada`).<br>• `pago` y `comprobante` no duplican el monto ni el `id_cliente` (se obtienen por `JOIN` con `compra` y `entrada`).<br>• `evento` no persiste `cupos_disponibles` como columna redundante. |
+| **PCI-DSS (Seguridad en Medios de Pago)** | Jamás se almacena el PAN completo (16 dígitos) ni el CVV. Solo se persisten `ultimos_cuatro_digitos` y el token `referencia_externa_pago`. |
+| **Integridad Criptográfica** | Contraseñas hasheadas con `BCrypt` y comprobantes sellados con `SHA-256` (`hash_cruce_seguridad`). |
+| **Control de Concurrencia** | Bloqueo optimista `@Version` en `Evento` (`OPTIMISTIC_FORCE_INCREMENT`) dentro de transacciones `@Transactional` para impedir sobreventa. |
 
-### Evaluacion De Normalizacion
+---
 
-- **1FN:** todos los campos son atomicos; no hay listas serializadas en columnas.
-- **2FN:** las tablas usan claves primarias simples y cada atributo depende de su entidad completa.
-- **3FN:** datos como rol, categoria y ubicacion se separan en tablas propias para evitar dependencias transitivas.
-- **BCNF practica:** las claves candidatas relevantes se protegen con unicidad, por ejemplo email de usuario, nombre de rol y codigo unico de entrada.
-- **Control de concurrencia:** `evento.version_evento` usa bloqueo optimista para reducir riesgo de sobreventa.
+## 🚀 Requisitos y Ejecución Rápida
 
-No se persisten `cupos_disponibles`, `cantidad` ni `total`. Los servicios los
-calculan desde las entradas, pero los DTO los siguen entregando al frontend para
-mantener una interfaz simple.
+### Requisitos
+- **Java 17** (`JAVA_HOME` configurado)
+- **Node.js >= 20** y **pnpm** (solo si se desea recompilar el frontend; el build estático ya está incluido en `src/main/resources/static`)
 
-Detalle ampliado: `docs/normalizacion-base-datos.md`.
+### Opción 1: Iniciar en Windows con doble clic (Modo Demo H2)
+Ejecutar el archivo [`iniciar-windows.bat`](iniciar-windows.bat) o desde PowerShell:
 
-## Requisitos
+```powershell
+.\mvnw.cmd spring-boot:run "-Dspring-boot.run.profiles=demo"
+```
 
-- Java 17 con `JAVA_HOME` configurado.
-- Node.js `>=20.19.0` o `>=22.12.0` (`.nvmrc` fija `22.20.0`).
-- pnpm `>=11.3.0` para dependencias del frontend.
-- PostgreSQL accesible sólo si se usa el perfil normal; la demo no lo necesita.
-- Visual Studio Code como editor recomendado del proyecto.
+Una vez iniciado, abrir en el navegador:
+- **Aplicación Web Completa:** `http://localhost:8080`
+- **API REST:** `http://localhost:8080/api`
+- **Consola Base de Datos H2:** `http://localhost:8080/h2-console`
+  - **JDBC URL:** `jdbc:h2:mem:butaca_demo`
+  - **User Name:** `sa`
+  - **Password:** *(dejar vacío)*
 
-## Configuracion Rapida
-
-### Demo Para Clase Con Un Solo Comando
-
-El modo demo levanta backend, frontend y una base local H2 en memoria. No requiere PostgreSQL ni credenciales externas.
-
-En Windows PowerShell:
-
+### Opción 2: Levantar Backend (8080) + Frontend con Hot-Reload (5173)
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\scripts\demo.ps1
 ```
 
-En Git Bash, Linux o macOS:
+### 🔑 Credenciales de Prueba Precargadas (`DataLoader`)
 
-```bash
-./scripts/demo.sh
-```
-
-Si es la primera vez que se usa el proyecto en esa maquina, el script puede descargar dependencias Maven y pnpm. Para preparar todo antes de clase, ejecutar una vez:
-
-```bash
-./mvnw compile
-cd frontend
-pnpm install
-```
-
-Si Maven tiene problemas de permisos con la cache del usuario, se puede usar una cache local del proyecto:
-
-```bash
-MAVEN_REPO_LOCAL=.m2/repository ./scripts/demo.sh
-```
-
-URLs:
-
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8080`
-- API: `http://localhost:8080/api`
-- Consola H2: `http://localhost:8080/h2-console`
-- JDBC H2: `jdbc:h2:mem:butaca_demo`, usuario `sa`, password vacio.
-
-Credenciales demo:
-
-- `admin@butaca.com` / `admin123`
-- `org@butaca.com` / `org123`
-- `cliente@butaca.com` / `cliente123`
-
-La base H2 se recrea en cada ejecucion, por eso siempre arranca con datos semilla limpios.
-
-Para cerrar los dos procesos, presionar `Ctrl+C` en la terminal que inicio la demo.
-
-Si el puerto `8080` ya esta ocupado, se puede usar otro para el backend sin editar codigo:
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\demo.ps1 -BackendPort 8081
-```
-
-### Donde Esta La Base De Datos
-
-Hay dos configuraciones y se usa una sola por ejecucion:
-
-| Modo | Ubicacion | Persistencia | Como verla |
+| Rol | Email | Contraseña | Qué permite probar |
 | --- | --- | --- | --- |
-| Presentacion (`demo`) | Dentro de la memoria del proceso Java | Se reinicia al cerrar el backend | Consola H2 en `http://localhost:8080/h2-console` |
-| Desarrollo real | Servidor PostgreSQL indicado por `DB_URL` | Permanente | pgAdmin, DBeaver o `psql` |
+| **Cliente** | `cliente@butaca.com` | `cliente123` | Explorar catálogo, filtrar por categorías, verificar identidad KYC (RENAPER), comprar entradas nominales y ver mis tickets QR. |
+| **Organizador** | `org@butaca.com` | `org123` | Crear/publicar/cancelar eventos y **validar acceso en puerta con QR + DNI nominal**. |
+| **Administrador** | `admin@butaca.com` | `admin123` | Gestionar ubicaciones y categorías, **cambiar roles de usuarios (`CLIENTE` ↔ `ORGANIZADOR`)** y auditar la tabla técnica de cruce de compras (`SHA-256`, pasarela y bitácora). |
 
-Datos de acceso a H2 durante la demo:
+---
 
-- JDBC URL: `jdbc:h2:mem:butaca_demo`
-- User Name: `sa`
-- Password: dejar vacio
-- Driver Class: `org.h2.Driver`
+## 🔌 Endpoints Principales de la API REST
 
-La estructura ejecutable la genera Hibernate desde las entidades JPA de
-`src/main/java/com/demo/butaca/model/`. `butaca.dbml` es su representación
-didáctica. En demo se usa `create-drop`; para PostgreSQL se recomienda comenzar
-con una base vacía porque esta refactorización no migra el modelo anterior.
+### Autenticación e Identidad (KYC)
+- `POST /api/auth/register` — Registro público de cuentas `CLIENTE`.
+- `POST /api/auth/login` — Inicio de sesión con validación `BCrypt`.
+- `GET /api/verificacion-identidad/usuario/{usuarioId}` — Consulta estado KYC del usuario.
+- `POST /api/verificacion-identidad/verificar` — Ejecuta la validación KYC obligatoria antes de comprar.
 
-### Ejecucion Con PostgreSQL
+### Catálogo y Eventos
+- `GET /api/eventos` — Lista eventos publicados con disponibilidad calculada.
+- `GET /api/eventos/{id}` — Detalle de un espectáculo.
+- `POST /api/eventos` / `PUT /api/eventos/{id}` — Creación y edición por organizador.
+- `PUT /api/eventos/{id}/publicar` / `PUT /api/eventos/{id}/cancelar` — Ciclo de vida del evento.
 
-1. Copiar variables de entorno:
+### Compras, Pasarela de Pago y Entradas Nominales
+- `POST /api/compras` — **Método transaccional de cruce de información** (KYC + Stock `@Version` + Pago PCI-DSS + Emisión Nominal + Comprobante `SHA-256` + Notificación + Auditoría).
+- `GET /api/compras/{id}` / `GET /api/compras/usuario/{id}` / `GET /api/compras/organizador/{id}`
+- `GET /api/entradas/validar/{codigo}` — Consulta estado y titularidad nominal de un QR en puerta.
+- `PUT /api/entradas/{id}/usar?dniPresentado={dni}` — Consume la entrada en puerta validando coincidencia de DNI.
 
-```bash
-cp .env.example .env
-cp frontend/.env.example frontend/.env
-```
+### Administración y Auditoría de Seguridad
+- `GET /api/admin/dashboard` / `GET /api/admin/stats` — Métricas e historial de compras cruzadas.
+- `GET /api/admin/usuarios` / `PUT /api/admin/usuarios/{id}/rol` — Gestión de cuentas y asignación del rol `ORGANIZADOR`.
+- `GET /api/admin/auditoria` — Bitácora inmutable de seguridad (`auditoria_seguridad`).
+- `GET /api/admin/categorias` / `POST /api/admin/categorias`
+- `GET /api/admin/ubicaciones` / `POST /api/admin/ubicaciones`
 
-2. Definir credenciales de base de datos:
+---
 
-```bash
-export DB_URL=jdbc:postgresql://localhost:5432/butaca
-export DB_USERNAME=tu_usuario
-export DB_PASSWORD=tu_password
-```
-
-En PowerShell:
+## 🧪 Ejecución de Pruebas Automatizadas
 
 ```powershell
-$env:DB_URL="jdbc:postgresql://localhost:5432/butaca"
-$env:DB_USERNAME="tu_usuario"
-$env:DB_PASSWORD="tu_password"
-```
-
-3. Instalar dependencias frontend:
-
-```bash
-cd frontend
-pnpm install
-```
-
-4. Compilar backend:
-
-```bash
-cd ..
-./mvnw compile
-```
-
-5. Levantar backend:
-
-```bash
-./mvnw spring-boot:run
-```
-
-6. Levantar frontend:
-
-```bash
-cd frontend
-pnpm run dev
-```
-
-URLs por defecto:
-
-- Backend: `http://localhost:8080`
-- API: `http://localhost:8080/api`
-- Frontend: `http://localhost:5173`
-
-## Variables De Entorno
-
-Backend:
-
-| Variable | Uso |
-| --- | --- |
-| `DB_URL` | URL JDBC de PostgreSQL. Fallback: `jdbc:postgresql://localhost:5432/butaca`. |
-| `DB_USERNAME` | Usuario PostgreSQL. |
-| `DB_PASSWORD` | Password PostgreSQL. |
-
-Frontend:
-
-| Variable | Valor por defecto |
-| --- | --- |
-| `VITE_API_BASE_URL` | `http://localhost:8080/api` |
-
-## Perfiles Backend
-
-| Perfil | Base de datos | Uso |
-| --- | --- | --- |
-| default | PostgreSQL remoto/local segun `application.properties` | Desarrollo real e integracion. |
-| `demo` | H2 en memoria | Presentacion rapida en clase con `./scripts/demo.sh`. |
-
-## Datos Demo
-
-`DataLoader` crea automaticamente:
-
-- `admin@butaca.com` / `admin123`
-- `org@butaca.com` / `org123`
-- `cliente@butaca.com` / `cliente123`
-
-Tambien crea roles, categorias, ubicaciones, eventos, compras, entradas, historial
-y notificaciones si la base esta vacia.
-
-## Endpoints Principales
-
-### Auth
-
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-
-### Eventos
-
-- `GET /api/eventos`
-- `GET /api/eventos/{id}`
-- `POST /api/eventos`
-- `PUT /api/eventos/{id}`
-- `PUT /api/eventos/{id}/publicar`
-- `PUT /api/eventos/{id}/cancelar`
-- `GET /api/eventos/organizador/{id}`
-- `GET /api/eventos/{id}/entradas`
-
-### Compras Y Entradas
-
-- `POST /api/compras`
-- `GET /api/compras/{id}`
-- `GET /api/compras/usuario/{id}`
-- `GET /api/compras/organizador/{id}`
-- `GET /api/entradas/usuario/{id}`
-- `GET /api/entradas/validar/{codigo}`
-- `PUT /api/entradas/{id}/usar`
-
-### Administracion
-
-- `GET /api/admin/dashboard`
-- `GET /api/admin/stats`
-- `GET /api/admin/categorias`
-- `POST /api/admin/categorias`
-- `GET /api/admin/ubicaciones`
-- `POST /api/admin/ubicaciones`
-- `GET /api/admin/usuarios`
-
-### Notificaciones
-
-- `GET /api/notificaciones/usuario/{id}`
-- `GET /api/notificaciones/evento/{eventoId}`
-- `PUT /api/notificaciones/{id}/leida`
-
-## Dependencias Y Alineacion Con El SRS
-
-Las herramientas actuales son adecuadas para el alcance academico:
-
-- **Spring Boot + JPA:** cubre persistencia, reglas de negocio y transacciones.
-- **PostgreSQL:** adecuado para integridad referencial, UUID, indices y concurrencia.
-- **BCrypt:** suficiente para hash de passwords en el MVP.
-- **React + Vite:** adecuado para catalogo, checkout y paneles por rol.
-- **React Router:** cubre navegacion por vistas sin agregar complejidad.
-
-No se usa una pasarela de pagos real. El checkout lo indica claramente, no solicita
-datos de tarjeta y confirma una compra simulada.
-
-### Alcance De Seguridad Del MVP
-
-Las contrasenas se almacenan con BCrypt y el login valida credenciales reales contra la base. La sesion de interfaz se conserva en `butaca-auth-user`; el proyecto todavia no implementa JWT ni autorizacion de endpoints en el servidor. Esa proteccion es una mejora necesaria antes de un despliegue productivo, pero no impide demostrar los flujos academicos del MVP.
-
-## Problemas Frecuentes
-
-### Maven falla con `JAVA_HOME`
-
-Instalar Java 17 y definir `JAVA_HOME`. En WSL:
-
-```bash
-sudo apt-get update
-sudo apt-get install openjdk-17-jdk
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
-```
-
-### Vite falla por `@rolldown/binding-*`
-
-Ocurre cuando `node_modules` fue instalado en otro sistema operativo o faltan dependencias opcionales. Ejecutar dentro de WSL:
-
-```bash
-cd frontend
-pnpm install
-pnpm run build
-```
-
-## Estructura
-
-```text
-.vscode
-├── extensions.json
-└── settings.json
-
-src/main/java/com/demo/butaca
-├── config
-├── controller
-├── dto
-├── model
-├── repository
-└── service
-
-frontend/src
-├── components
-├── data
-├── pages
-├── services
-├── styles
-└── utils
-```
-
-## Higiene Del Repositorio
-
-El repositorio mantiene solamente codigo fuente, configuracion necesaria y documentacion vigente. Se excluyen artefactos generados y metadatos de otros editores:
-
-- `frontend/dist/`
-- `target/`
-- `node_modules/`
-- `package-lock.json`
-- `yarn.lock`
-- `.idea/`
-- `.opencode/`
-- `.agents/`
-- `.codex/`
-
-La configuracion de editor versionable queda limitada a `.vscode/settings.json` y `.vscode/extensions.json`.
-
-## Verificacion
-
-En Windows:
-
-```powershell
-.\mvnw.cmd compile
 .\mvnw.cmd test
-cd frontend
-corepack pnpm run build
 ```
 
-En Git Bash, Linux o macOS:
-
-```bash
-./mvnw compile
-./mvnw test
-cd frontend
-pnpm run build
-```
-
-El frontend debe compilar sin errores. `pnpm run build` genera `frontend/dist/` localmente, pero esa carpeta no se versiona. El backend requiere Java 17 disponible en el entorno.
+Las pruebas de integración en [`ButacaApplicationTests.java`](src/test/java/com/demo/butaca/ButacaApplicationTests.java) verifican automáticamente:
+1. Filtrado del catálogo público por disponibilidad real.
+2. Bloqueo de seguridad cuando un usuario intenta comprar sin verificación de identidad KYC.
+3. Cruce transaccional completo de compra (emisión de entradas nominales con DNI por asistente, pago PCI-DSS, comprobante con hash `SHA-256`, incremento de `@Version` e historial).
+4. Validación en puerta con DNI nominal y rechazo ante DNI incorrecto o segundo intento de uso.
